@@ -75,48 +75,26 @@ body {
   padding: 0;
   min-height: 100vh;
   display: flex;
-  justify-content: center;
-  background-color: #E7EAF2;
+  flex-direction: column;
+  background-color: #F0F3F9;
   color: var(--gris-text-main);
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
 /* ==========================================================================
-   CONTENEDOR APP MÓVIL (FRAME DISPOSITIVO MÓVIL)
+   CONTENEDOR PRINCIPAL RESPONSIVE (MÓVIL Y ESCRITORIO FLUIDO)
    ========================================================================== */
 .mobile-app-shell {
   width: 100%;
-  max-width: 480px; /* Tamaño teléfono moderno en desktop */
+  max-width: 1240px; /* Ancho completo moderno para escritorio */
+  margin: 0 auto;
   min-height: 100vh;
   background-color: var(--gris-surface);
   position: relative;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 10px 40px rgba(1, 28, 81, 0.15);
-  overflow-x: hidden;
-}
-
-@media (min-width: 481px) {
-  body {
-    padding: 20px 0;
-  }
-  .mobile-app-shell {
-    border-radius: 36px;
-    border: 8px solid #000B21;
-    min-height: 880px;
-    height: auto;
-  }
-}
-
-@media (max-width: 480px) {
-  html, body {
-    background-color: var(--gris-surface);
-  }
-  .mobile-app-shell {
-    border-radius: 0;
-    border: none;
-    box-shadow: none;
-    max-width: 100%;
-  }
+  box-shadow: 0 4px 24px rgba(1, 28, 81, 0.06);
+  border: none;
 }
 
 /* ICONOS SVG REUTILIZABLES */
@@ -1439,4 +1417,67 @@ body {
 /* ANCHORS DE SCROLL */
 .section-anchor {
   scroll-margin-top: 70px;
+}
+
+/* ==========================================================================
+   DESKTOP RESPONSIVE ENHANCEMENTS (PANTALLAS GRANDES Y MEDIANAS)
+   ========================================================================== */
+@media (min-width: 900px) {
+  .mobile-main-content {
+    padding: 24px 32px 48px;
+  }
+  
+  .mobile-login-container {
+    max-width: 480px;
+    margin: 40px auto;
+  }
+
+  .mobile-info-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    align-items: start;
+  }
+
+  .mobile-user-card {
+    grid-column: 1 / -1;
+  }
+
+  .mobile-kpi-grid {
+    grid-column: 1 / -1;
+    grid-template-columns: repeat(4, 1fr) !important;
+  }
+
+  .mobile-wallet-card {
+    grid-column: 1;
+  }
+
+  .mobile-code-card {
+    grid-column: 2;
+  }
+
+  .mobile-history-card {
+    grid-column: 2;
+  }
+
+  #seccion-mecanica {
+    grid-column: 1;
+  }
+
+  #seccion-soporte {
+    grid-column: 2;
+  }
+
+  #seccion-catalogo {
+    grid-column: 1 / -1;
+  }
+
+  .mobile-catalog-grid {
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)) !important;
+    gap: 16px;
+  }
+
+  .mobile-bottom-bar {
+    display: none !important;
+  }
 }

@@ -40,8 +40,14 @@
       </a>
 
       <div class="top-bar-actions">
+        <!-- Indicador Estado Supabase -->
+        <button type="button" class="top-admin-pill" id="client-supabase-pill" onclick="openSupabaseModal()" title="Configurar conexión con Supabase DB" style="cursor: pointer; border: none; background: #011C51; color: #FECC35;">
+          <span id="client-db-dot" style="width: 8px; height: 8px; border-radius: 50%; background: #F59E0B; display: inline-block;"></span>
+          <span id="client-db-text">DB Supabase</span>
+        </button>
+
         <!-- Acceso Directo Superadmin -->
-        <a href="/admin/index.html" class="top-admin-pill hidden" id="nav-admin-shortcut" title="Ir al Panel de Superadmin">
+        <a href="../admin/index.html" class="top-admin-pill hidden" id="nav-admin-shortcut" title="Ir al Panel de Superadmin">
           <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <rect x="3" y="3" width="7" height="7"></rect>
             <rect x="14" y="3" width="7" height="7"></rect>
@@ -52,21 +58,21 @@
         </a>
 
         <!-- Pill de Usuario Activo en Móvil -->
-        <div id="nav-user-pill-container" class="top-user-pill" onclick="showView('info')" title="Ver mi perfil">
-          <div class="top-user-avatar" id="top-user-avatar">SS</div>
-          <span id="nav-user-pill-name">Santiago</span>
+        <div id="nav-user-pill-container" class="top-user-pill hidden" onclick="showView('info')" title="Ver mi perfil">
+          <div class="top-user-avatar" id="top-user-avatar">--</div>
+          <span id="nav-user-pill-name">Mi Cuenta</span>
         </div>
 
         <!-- Badge de Fichos Móvil -->
-        <a href="#seccion-billetera" class="top-fichos-pill" id="nav-fichos-cta">
+        <a href="#seccion-billetera" class="top-fichos-pill hidden" id="nav-fichos-cta">
           <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
             <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
           </svg>
-          <span id="nav-fichos-badge">4/7</span>
+          <span id="nav-fichos-badge">0/7</span>
         </a>
 
         <!-- Botón Logout / Login Rápido -->
-        <button class="top-icon-btn" id="nav-auth-toggle-btn" onclick="handleNavAuthClick()" aria-label="Cambiar de cuenta o salir" title="Salir o Ingresar">
+        <button class="top-icon-btn hidden" id="nav-auth-toggle-btn" onclick="handleNavAuthClick()" aria-label="Cambiar de cuenta o salir" title="Salir">
           <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
             <polyline points="16 17 21 12 16 7"></polyline>
@@ -113,7 +119,7 @@
                   <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
                   <polyline points="22,6 12,13 2,6"></polyline>
                 </svg>
-                <input type="email" id="login-email" class="mobile-input" placeholder="tu@correo.com" required value="santiago@crunch.com" inputmode="email" autocomplete="email">
+                <input type="email" id="login-email" class="mobile-input" placeholder="tu@correo.com" required inputmode="email" autocomplete="email">
               </div>
             </div>
 
@@ -126,7 +132,7 @@
                   <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
                   <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
                 </svg>
-                <input type="password" id="login-password" class="mobile-input" placeholder="••••••••" required value="crunch2026" autocomplete="current-password">
+                <input type="password" id="login-password" class="mobile-input" placeholder="••••••••" required autocomplete="current-password">
               </div>
             </div>
 
@@ -137,14 +143,6 @@
                 <line x1="5" y1="12" x2="19" y2="12"></line>
                 <polyline points="12 5 19 12 12 19"></polyline>
               </svg>
-            </button>
-
-            <!-- Acceso Rápido 1 Toque (Demo) -->
-            <button type="button" class="btn-mobile-demo" onclick="handleQuickDemoLogin()">
-              <svg class="icon-sm text-naranja" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
-              </svg>
-              <span>⚡ Ingreso Rápido Demo (Santiago &middot; 4/7 Fichos)</span>
             </button>
 
             <!-- Alternador Sutil a Registro (Sin Pestañas) -->
@@ -399,33 +397,12 @@
 
           <form id="form-register-code" onsubmit="handleRegisterPurchase(event)">
             <div class="code-input-row">
-              <input type="text" id="purchase-code-input" class="mobile-input" placeholder="Código de empaque (ej. PAPA-2026)" required autocomplete="off">
+              <input type="text" id="purchase-code-input" class="mobile-input" placeholder="Ingresa tu código QR (ej. CRUNCH-F1-XXXXX)" required autocomplete="off">
               <button type="submit" class="code-submit-btn">
                 <span>+ Ficho</span>
               </button>
             </div>
           </form>
-
-          <!-- Chips de Prueba Rápida en 1 Toque -->
-          <div style="margin-top: 10px;">
-            <span style="font-size: 0.6875rem; font-weight: 700; color: var(--gris-text-muted); display: block; margin-bottom: 6px;">
-              Prueba rápida en 1 clic:
-            </span>
-            <div class="quick-chips-grid">
-              <button type="button" class="chip-btn" onclick="quickAddFicho('Papas Rústicas Sal Marina')">
-                +1 Papa Rústica
-              </button>
-              <button type="button" class="chip-btn" onclick="quickAddFicho('Palomitas Caramelo Crunch')">
-                +1 Palomitas
-              </button>
-              <button type="button" class="chip-btn chip-btn-gold" onclick="reachSevenFichosDemo()">
-                ⚡ Completar a 7
-              </button>
-              <button type="button" class="chip-btn" onclick="resetFichosDemo()">
-                🔄 Reiniciar (0)
-              </button>
-            </div>
-          </div>
         </div>
 
         <!-- 5. Historial Resumido de Fichos -->
@@ -484,75 +461,19 @@
           </div>
         </div>
 
-        <!-- 7. Catálogo Resumido (Grid de 2 Columnas Móvil) -->
+        <!-- 7. Catálogo Dinámico de Productos (Cargado directo de Supabase DB) -->
         <div class="section-anchor" id="seccion-catalogo">
           <div class="card-section-header">
             <svg class="icon text-azul" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
               <line x1="3" y1="6" x2="21" y2="6"></line>
             </svg>
-            <h3 class="card-section-title">Snacks Participantes</h3>
+            <h3 class="card-section-title">Catálogo Oficial de Snacks (Base de Datos)</h3>
           </div>
 
-          <div class="mobile-catalog-grid">
-            <!-- Producto 1 -->
-            <div class="mobile-snack-card">
-              <div class="snack-thumb-box">
-                <img src="assets/crunch_chips_detail.jpg" alt="Papas Rústicas" class="snack-thumb-img">
-                <span class="snack-thumb-badge">+1 Ficho</span>
-              </div>
-              <div class="snack-thumb-info">
-                <h4 class="snack-thumb-title">Papas Rústicas Sal Marina</h4>
-                <span class="snack-thumb-price">$4.500 COP</span>
-                <button type="button" class="btn-add-snack" onclick="quickAddFicho('Papas Rústicas Sal Marina')">
-                  + Sumar Ficho
-                </button>
-              </div>
-            </div>
-
-            <!-- Producto 2 -->
-            <div class="mobile-snack-card">
-              <div class="snack-thumb-box">
-                <img src="assets/crunch_popcorn_detail.jpg" alt="Palomitas Caramelo" class="snack-thumb-img">
-                <span class="snack-thumb-badge">+1 Ficho</span>
-              </div>
-              <div class="snack-thumb-info">
-                <h4 class="snack-thumb-title">Palomitas Caramelo Crunch</h4>
-                <span class="snack-thumb-price">$4.200 COP</span>
-                <button type="button" class="btn-add-snack" onclick="quickAddFicho('Palomitas Caramelo Crunch')">
-                  + Sumar Ficho
-                </button>
-              </div>
-            </div>
-
-            <!-- Producto 3 -->
-            <div class="mobile-snack-card">
-              <div class="snack-thumb-box">
-                <img src="assets/crunch_hero.jpg" alt="Papas Finas Hierbas" class="snack-thumb-img">
-                <span class="snack-thumb-badge">+1 Ficho</span>
-              </div>
-              <div class="snack-thumb-info">
-                <h4 class="snack-thumb-title">Papas Finas Hierbas</h4>
-                <span class="snack-thumb-price">$4.500 COP</span>
-                <button type="button" class="btn-add-snack" onclick="quickAddFicho('Papas Finas Hierbas')">
-                  + Sumar Ficho
-                </button>
-              </div>
-            </div>
-
-            <!-- Producto 4 -->
-            <div class="mobile-snack-card">
-              <div class="snack-thumb-box">
-                <img src="assets/logo_preview_light.jpg" alt="Palomitas Mantequilla" class="snack-thumb-img">
-                <span class="snack-thumb-badge">+1 Ficho</span>
-              </div>
-              <div class="snack-thumb-info">
-                <h4 class="snack-thumb-title">Palomitas Sal & Mantequilla</h4>
-                <span class="snack-thumb-price">$4.000 COP</span>
-                <button type="button" class="btn-add-snack" onclick="quickAddFicho('Palomitas Sal Marina & Mantequilla')">
-                  + Sumar Ficho
-                </button>
-              </div>
+          <div class="mobile-catalog-grid" id="catalog-products-grid">
+            <div style="grid-column: 1 / -1; text-align: center; padding: 24px; color: var(--gris-text-muted);">
+              Cargando catálogo en tiempo real desde Supabase...
             </div>
           </div>
         </div>
@@ -668,6 +589,36 @@
       <button class="btn-mobile-secondary" onclick="closeClaimModal()" style="margin-top: 8px;">
         <span>Cancelar</span>
       </button>
+    </div>
+  </div>
+
+  <!-- MODAL CONEXIÓN SUPABASE -->
+  <div id="modal-supabase" style="display: none; position: fixed; inset: 0; background: rgba(1, 28, 81, 0.65); z-index: 1000; align-items: center; justify-content: center; padding: 16px;">
+    <div style="background: #fff; width: 100%; max-width: 480px; border-radius: 16px; padding: 24px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.25);">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+        <h3 style="color: var(--azul-primary); font-size: 1.15rem; font-weight: 800; margin: 0;">Conexión a Supabase DB</h3>
+        <button onclick="closeSupabaseModal()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #64748B;">&times;</button>
+      </div>
+
+      <p style="font-size: 0.8125rem; color: #64748B; margin-bottom: 14px;">
+        Conectando a tu proyecto <code>tivjxgevzavibkrqdgyn</code>. Pega tu <strong>Anon Public Key</strong> de Supabase para validar todo en tiempo real desde la DB:
+      </p>
+
+      <div style="margin-bottom: 12px;">
+        <label style="display:block; font-size: 0.75rem; font-weight: 700; color: #1E293B; margin-bottom: 4px;">Host Supabase</label>
+        <input type="text" class="mobile-input" value="https://tivjxgevzavibkrqdgyn.supabase.co" readonly style="background: #F8FAFC;">
+      </div>
+
+      <div style="margin-bottom: 16px;">
+        <label style="display:block; font-size: 0.75rem; font-weight: 700; color: #1E293B; margin-bottom: 4px;">Supabase Anon Key (Llave Pública)</label>
+        <textarea id="client-supabase-anon-key-input" class="mobile-input" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." style="min-height: 80px; font-family: monospace; font-size: 0.75rem;"></textarea>
+      </div>
+
+      <div style="display: flex; gap: 8px; justify-content: flex-end;">
+        <button type="button" class="btn-mobile-primary" onclick="saveClientSupabaseKey()" style="padding: 10px 18px; font-size: 0.85rem;">
+          Guardar & Conectar a DB
+        </button>
+      </div>
     </div>
   </div>
 

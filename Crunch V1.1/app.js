@@ -1,99 +1,235 @@
 /**
- * Crunch Snacks V1.1 - Pure JavaScript Mobile App Engine
- * UI/UX Especializada para Teléfonos Móviles
- * Paleta Oficial:
- * - Azul #011C51 | Naranja #FEA704 | Amarillo #FECC35 | Blanco #FFFFFF | Gris #F5F6FA
- * Cero Emojis - Iconografía 100% SVG
- * Conectado con Supabase DB vía crunch-supabase.js
+ * Crunch Snacks V1.1 - Pure JavaScript Client App
+ * Sin datos simulados: Todas las consultas y validaciones van directo a Supabase DB.
+ * Responsive fluido: Se adapta a escritorio completo y dispositivos móviles.
  */
 
 // ==========================================================================
-// 1. ESTADO GLOBAL & PERSISTENCIA (LOCALSTORAGE / SESSIONSTORAGE / SUPABASE)
+// 1. ESTADO DE USUARIO (SOLO DATOS REALES DE BASE DE DATOS)
 // ==========================================================================
-const DEFAULT_USER_STATE = {
-  isLoggedIn: false,
-  id: 1,
-  name: "Santiago Sarmiento",
-  email: "santiago@crunch.com",
-  tier: "Crunch Enthusiast",
-  fichos: 2, // Por regla de negocio: cada cuenta inicia con 2 fichos gratis
-  isSuperadmin: true,
-  history: [],
-  totalRewardsClaimed: 0
-};
+let currentUser = null;
+let currentView = "login";
 
-let currentUser = loadUserData();
-let currentView = currentUser.isLoggedIn ? "info" : "login";
+// ==========================================================================
+// 2. INICIALIZACIÓN
+// ==========================================================================
+document.addEventListener("DOMContentLoaded", async () => {
+  await updateSupabaseStatusBadge();
 
-function loadUserData() {
-  try {
-    const saved = localStorage.getItem("crunch_user_data");
-    const sessionActive = sessionStorage.getItem("crunch_session_active") === "true";
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      return { ...DEFAULT_USER_STATE, ...parsed, isLoggedIn: sessionActive };
+  // Intentar restaurar sesión activa real
+  const savedUserJson = localStorage.getItem("crunch_active_user");
+  if (savedUserJson) {
+    try {
+      const parsed = JSON.parse(savedUserJson);
+      if (parsed && parsed.email) {
+        // Validar directamente contra Supabase
+        await refreshUserFromDB(parsed.email);
+      }
+    } catch (e) {
+      console.warn("Sesión expirada o inválida:", e);
+      currentUser = null;
     }
-  } catch (e) {
-    console.error("Error al acceder al almacenamiento:", e);
   }
-  return { ...DEFAULT_USER_STATE, isLoggedIn: false };
+
+  // Cargar catálogo oficial desde la DB
+  await loadCatalogFromDB();
+
+  // Detectar código QR en URL (?claim=CRUNCH-... o ?code=...)
+  const urlParams = new URLSearchParams(window.location.search);
+  const claimCode = urlParams.get("claim") || urlParams.get("code");
+  if (claimCode) {
+    if (currentUser) {
+      await processQRClaim(claimCode);
+    } else {
+      sessionStorage.setItem("pending_ficho_code", claimCode);
+      showToast("Código QR Detectado", "Inicia sesión o crea tu cuenta para reclamar tu ficho.");
+      showView("login");
+    }
+    try {
+      window.history.replaceState({}, document.title, window.location.pathname);
+    } catch (e) {}
+  } else {
+    showView(currentUser ? "info" : "login");
+  }
+});
+
+// ==========================================================================
+// 3. CONEXIÓN SUPABASE & STATUS BADGE
+// ==========================================================================
+async function updateSupabaseStatusBadge() {
+  const dot = document.getElementById("client-db-dot");
+  const text = document.getElementById("client-db-text");
+  if (!dot || !text || !window.CrunchDB) return;
+
+  const res = await window.CrunchDB.testSupabaseConnection();
+  if (res.success) {
+    dot.style.background = "#10B981"; // Verde
+    text.textContent = "Supabase DB Activa";
+  } else {
+    dot.style.background = "#F59E0B"; // Amarillo
+    text.textContent = "Conectar DB";
+  }
 }
 
-function saveUserData() {
-  try {
-    localStorage.setItem("crunch_user_data", JSON.stringify(currentUser));
-  } catch (e) {
-    console.error("Error al guardar en localStorage:", e);
+function openSupabaseModal() {
+  const modal = document.getElementById("modal-supabase");
+  const input = document.getElementById("client-supabase-anon-key-input");
+  if (input) input.value = window.CrunchDB.getAnonKey();
+  if (modal) modal.style.display = "flex";
+}
+
+function closeSupabaseModal() {
+  const modal = document.getElementById("modal-supabase");
+  if (modal) modal.style.display = "none";
+}
+
+async function saveClientSupabaseKey() {
+  const input = document.getElementById("client-supabase-anon-key-input");
+  const key = input ? input.value.trim() : "";
+  window.CrunchDB.setAnonKey(key);
+  closeSupabaseModal();
+
+  showToast("Conectando...", "Verificando conexión con Supabase.");
+  const res = await window.CrunchDB.testSupabaseConnection();
+  if (res.success) {
+    showToast("¡Conectado!", "Conectado exitosamente a Supabase DB.");
+    await updateSupabaseStatusBadge();
+    await loadCatalogFromDB();
+    if (currentUser && currentUser.email) {
+      await refreshUserFromDB(currentUser.email);
+    }
+  } else {
+    showToast("Error de Conexión", res.message);
+    await updateSupabaseStatusBadge();
   }
-  updateAllPageComponents();
 }
 
 // ==========================================================================
-// 2. SINCRONIZACIÓN CON SUPABASE DB EN JAVASCRIPT
+// 4. AUTENTICACIÓN DIRECTA CON SUPABASE (SIN DATOS HARDCODEADOS)
 // ==========================================================================
-async function syncUserDataWithSupabase() {
-  if (!window.CrunchDB) return;
+async function handleLoginSubmit(event) {
+  event.preventDefault();
+  const emailInput = document.getElementById("login-email");
+  const email = emailInput ? emailInput.value.trim().toLowerCase() : "";
+
+  if (!email) {
+    showToast("Aviso", "Por favor ingresa tu correo electrónico.");
+    return;
+  }
+
+  showToast("Consultando DB...", "Buscando usuario en Supabase.");
 
   try {
     const users = await window.CrunchDB.getUsers();
-    const match = users.find(u => u.email.toLowerCase() === currentUser.email.toLowerCase());
-    if (match) {
-      currentUser.id = match.id;
-      currentUser.name = match.full_name;
-      currentUser.fichos = match.fichos_balance;
-      currentUser.isSuperadmin = (match.roles || []).some(r => r.name === "Superadmin");
-      
-      const adminBtn = document.getElementById("nav-admin-shortcut");
-      if (adminBtn) {
-        if (currentUser.isSuperadmin) {
-          adminBtn.classList.remove("hidden");
-        } else {
-          adminBtn.classList.add("hidden");
-        }
-      }
+    const foundUser = users.find(u => u.email.toLowerCase() === email);
 
-      saveUserData();
+    if (!foundUser) {
+      showToast("Usuario no encontrado", "No existe cuenta con este correo. Regístrate en la pestaña de abajo.");
+      return;
     }
 
-    // Cargar compras del usuario
-    const sales = await window.CrunchDB.getAllSales();
-    const mySales = sales.filter(s => s.user_id === currentUser.id);
-    if (mySales.length > 0) {
-      currentUser.history = mySales.map(s => ({
-        id: s.id,
-        product: s.product_name || "Crispetas",
-        date: new Date(s.created_at).toLocaleDateString("es-CO", { day: "2-digit", month: "short" }),
-        fichoNumber: s.fichos_granted > 0 ? `+${s.fichos_granted}` : "Compra"
-      }));
-      saveUserData();
+    currentUser = {
+      id: foundUser.id,
+      name: foundUser.full_name,
+      email: foundUser.email,
+      phone: foundUser.phone,
+      fichos: foundUser.fichos_balance,
+      isSuperadmin: (foundUser.roles || []).some(r => r.name === "Superadmin")
+    };
+
+    localStorage.setItem("crunch_active_user", JSON.stringify(currentUser));
+    showToast("Bienvenido", `Hola ${currentUser.name}. Saldo: ${currentUser.fichos} fichos.`);
+    showView("info");
+
+    // Verificar si había un QR pendiente
+    const pendingCode = sessionStorage.getItem("pending_ficho_code");
+    if (pendingCode) {
+      sessionStorage.removeItem("pending_ficho_code");
+      setTimeout(() => processQRClaim(pendingCode), 400);
     }
   } catch (err) {
-    console.warn("Aviso al sincronizar con DB:", err);
+    showToast("Error de Base de Datos", err.message);
+  }
+}
+
+async function handleRegisterSubmit(event) {
+  event.preventDefault();
+  const nameInput = document.getElementById("reg-name");
+  const emailInput = document.getElementById("reg-email");
+
+  const full_name = nameInput ? nameInput.value.trim() : "";
+  const email = emailInput ? emailInput.value.trim().toLowerCase() : "";
+
+  if (!full_name || !email) {
+    showToast("Aviso", "Por favor completa nombre y correo.");
+    return;
+  }
+
+  showToast("Registrando en DB...", "Creando cuenta con 2 fichos iniciales gratis.");
+
+  try {
+    // Inserta directo en Supabase DB
+    const createdUser = await window.CrunchDB.createUser({
+      full_name,
+      email,
+      initial_fichos: 2, // Por regla: 2 fichos gratis de bienvenida
+      role: "Cliente"
+    });
+
+    currentUser = {
+      id: createdUser.id,
+      name: createdUser.full_name,
+      email: createdUser.email,
+      phone: createdUser.phone,
+      fichos: createdUser.fichos_balance,
+      isSuperadmin: false
+    };
+
+    localStorage.setItem("crunch_active_user", JSON.stringify(currentUser));
+    triggerConfetti();
+    showToast("¡Cuenta Creada en DB!", `Bienvenido ${currentUser.name}. Recibiste 2 fichos gratis de regalo.`);
+    showView("info");
+
+    const pendingCode = sessionStorage.getItem("pending_ficho_code");
+    if (pendingCode) {
+      sessionStorage.removeItem("pending_ficho_code");
+      setTimeout(() => processQRClaim(pendingCode), 400);
+    }
+  } catch (err) {
+    showToast("Error de Registro", err.message);
+  }
+}
+
+function handleLogout() {
+  currentUser = null;
+  localStorage.removeItem("crunch_active_user");
+  showToast("Sesión Cerrada", "Has salido de tu cuenta.");
+  showView("login");
+}
+
+async function refreshUserFromDB(email) {
+  try {
+    const users = await window.CrunchDB.getUsers();
+    const foundUser = users.find(u => u.email.toLowerCase() === email.toLowerCase());
+    if (foundUser) {
+      currentUser = {
+        id: foundUser.id,
+        name: foundUser.full_name,
+        email: foundUser.email,
+        phone: foundUser.phone,
+        fichos: foundUser.fichos_balance,
+        isSuperadmin: (foundUser.roles || []).some(r => r.name === "Superadmin")
+      };
+      localStorage.setItem("crunch_active_user", JSON.stringify(currentUser));
+      updateAllPageComponents();
+    }
+  } catch (e) {
+    console.warn("Fallo al refrescar usuario desde DB:", e);
   }
 }
 
 // ==========================================================================
-// 3. CONTROL DE VISTAS MÓVILES
+// 5. CONTROL DE VISTAS (LOGIN vs DASHBOARD DE USUARIO)
 // ==========================================================================
 function showView(viewName) {
   currentView = viewName;
@@ -103,10 +239,9 @@ function showView(viewName) {
   const navFichosCta = document.getElementById("nav-fichos-cta");
   const navAuthBtn = document.getElementById("nav-auth-toggle-btn");
   const bottomNav = document.getElementById("mobile-bottom-nav");
-  const topBar = document.querySelector(".mobile-top-bar");
   const adminBtn = document.getElementById("nav-admin-shortcut");
 
-  if (viewName === "login") {
+  if (viewName === "login" || !currentUser) {
     if (viewLogin) viewLogin.classList.remove("hidden");
     if (viewInfo) viewInfo.classList.add("hidden");
 
@@ -114,242 +249,31 @@ function showView(viewName) {
     if (navFichosCta) navFichosCta.classList.add("hidden");
     if (navAuthBtn) navAuthBtn.classList.add("hidden");
     if (adminBtn) adminBtn.classList.add("hidden");
-
     if (bottomNav) bottomNav.classList.add("hidden");
-    if (topBar) topBar.classList.add("top-bar-centered");
 
     toggleAuthMode("login");
-
-    const mainContent = document.querySelector(".mobile-main-content");
-    if (mainContent) mainContent.scrollTop = 0;
   } else {
-    currentUser.isLoggedIn = true;
-    try {
-      sessionStorage.setItem("crunch_session_active", "true");
-    } catch (e) {}
-    saveUserData();
-
     if (viewLogin) viewLogin.classList.add("hidden");
     if (viewInfo) viewInfo.classList.remove("hidden");
 
     if (navUserPill) navUserPill.classList.remove("hidden");
     if (navFichosCta) navFichosCta.classList.remove("hidden");
     if (navAuthBtn) navAuthBtn.classList.remove("hidden");
-    if (adminBtn && currentUser.isSuperadmin) adminBtn.classList.remove("hidden");
-
     if (bottomNav) bottomNav.classList.remove("hidden");
-    if (topBar) topBar.classList.remove("top-bar-centered");
 
-    setActiveBottomTab("wallet");
-    updateAllPageComponents();
-    syncUserDataWithSupabase();
-  }
-}
-
-function handleLogoClick() {
-  if (currentUser.isLoggedIn) {
-    showView("info");
-    const el = document.getElementById("seccion-perfil");
-    if (el) el.scrollIntoView({ behavior: "smooth" });
-  } else {
-    showView("login");
-  }
-}
-
-function handleNavAuthClick() {
-  if (currentUser.isLoggedIn) {
-    handleLogout();
-  } else {
-    showView("login");
-  }
-}
-
-// ==========================================================================
-// 4. NAVEGACIÓN INFERIOR MÓVIL
-// ==========================================================================
-function handleBottomNav(target) {
-  setActiveBottomTab(target);
-
-  if (currentView !== "info") {
-    showView("info");
-  }
-
-  if (target === "wallet") {
-    const el = document.getElementById("seccion-billetera");
-    if (el) el.scrollIntoView({ behavior: "smooth" });
-  } else if (target === "add") {
-    const el = document.getElementById("seccion-acciones");
-    if (el) {
-      el.scrollIntoView({ behavior: "smooth" });
-      setTimeout(() => {
-        const input = document.getElementById("purchase-code-input");
-        if (input) input.focus();
-      }, 350);
-    }
-  } else if (target === "catalog") {
-    const el = document.getElementById("seccion-catalogo");
-    if (el) el.scrollIntoView({ behavior: "smooth" });
-  } else if (target === "help") {
-    const el = document.getElementById("seccion-soporte");
-    if (el) el.scrollIntoView({ behavior: "smooth" });
-  }
-}
-
-function setActiveBottomTab(tabName) {
-  const tabs = {
-    wallet: document.getElementById("tab-nav-wallet"),
-    add: document.getElementById("tab-nav-add"),
-    catalog: document.getElementById("tab-nav-catalog"),
-    help: document.getElementById("tab-nav-help")
-  };
-
-  Object.keys(tabs).forEach(k => {
-    if (tabs[k]) {
-      if (k === tabName) {
-        tabs[k].classList.add("active");
+    if (adminBtn) {
+      if (currentUser.isSuperadmin) {
+        adminBtn.classList.remove("hidden");
       } else {
-        tabs[k].classList.remove("active");
+        adminBtn.classList.add("hidden");
       }
     }
-  });
+
+    updateAllPageComponents();
+    loadUserHistoryFromDB();
+  }
 }
 
-// ==========================================================================
-// 5. ACTUALIZACIÓN DINÁMICA DE LA INTERFAZ
-// ==========================================================================
-function updateAllPageComponents() {
-  // REGLA: Los 7 fichos aplican para "Crispetas" ($2.000 COP)
-  const fichos = Math.min(currentUser.fichos, 7);
-  const remaining = Math.max(0, 7 - fichos);
-  const isSeven = fichos >= 7;
-  const progressPercent = Math.round((fichos / 7) * 100);
-
-  // A. Top Bar
-  const navFichosBadge = document.getElementById("nav-fichos-badge");
-  if (navFichosBadge) navFichosBadge.textContent = `${fichos}/7`;
-
-  const navUserPillName = document.getElementById("nav-user-pill-name");
-  if (navUserPillName) navUserPillName.textContent = (currentUser.name || "Usuario").split(" ")[0];
-
-  const topAvatar = document.getElementById("top-user-avatar");
-  const clubAvatarInitials = document.getElementById("club-avatar-initials");
-  const initials = (currentUser.name || "SS")
-    .split(" ")
-    .map(n => n[0])
-    .slice(0, 2)
-    .join("")
-    .toUpperCase() || "SS";
-
-  if (topAvatar) topAvatar.textContent = initials;
-  if (clubAvatarInitials) clubAvatarInitials.textContent = initials;
-
-  // B. Perfil de Usuario
-  const clubUserName = document.getElementById("club-user-name");
-  const clubUserEmail = document.getElementById("club-user-email");
-  const clubTierBadge = document.getElementById("club-tier-badge");
-
-  if (clubUserName) clubUserName.textContent = currentUser.name;
-  if (clubUserEmail) clubUserEmail.textContent = currentUser.email;
-  if (clubTierBadge) {
-    clubTierBadge.textContent = isSeven ? "¡Crispetas Gratis Desbloqueadas!" : (currentUser.isSuperadmin ? "Superadmin Crunch" : currentUser.tier);
-  }
-
-  // C. Métricas Resumidas
-  const metricFichos = document.getElementById("metric-fichos-count");
-  const metricRemaining = document.getElementById("metric-remaining-count");
-  const metricPercent = document.getElementById("metric-progress-percent");
-  const metricRewards = document.getElementById("metric-rewards-claimed");
-
-  if (metricFichos) metricFichos.textContent = `${fichos} / 7`;
-  if (metricRemaining) {
-    metricRemaining.textContent = isSeven ? "¡Canje listo!" : `${remaining} Crispetas`;
-  }
-  if (metricPercent) metricPercent.textContent = `${progressPercent}%`;
-  if (metricRewards) {
-    metricRewards.textContent = `${currentUser.totalRewardsClaimed || 0} Crispetas`;
-  }
-
-  // D. Billetera de Fichos
-  const progressFill = document.getElementById("wallet-progress-fill");
-  const percentText = document.getElementById("wallet-percent-text");
-  const summaryText = document.getElementById("wallet-summary-text");
-
-  if (progressFill) progressFill.style.width = `${progressPercent}%`;
-  if (percentText) percentText.textContent = `${progressPercent}%`;
-
-  if (summaryText) {
-    if (isSeven) {
-      summaryText.innerHTML = `<strong>¡Meta Cumplida!</strong> Tus 7 fichos están listos. Reclama tu paquete de <strong>Crispetas 100% Gratis</strong>.`;
-    } else {
-      summaryText.innerHTML = `Tienes <strong>${fichos} de 7</strong> fichos para Crispetas (faltan <strong>${remaining}</strong> para tu premio).`;
-    }
-  }
-
-  // E. Ranuras de Fichos (Slots 1 al 7)
-  const trackSlots = document.querySelectorAll(".mobile-ficho-item");
-  trackSlots.forEach(slot => {
-    const index = parseInt(slot.getAttribute("data-index"), 10);
-    if (index <= fichos) {
-      slot.classList.add("completed");
-    } else {
-      slot.classList.remove("completed");
-    }
-  });
-
-  // F. Botón de Canje al llegar a 7
-  const btnClaim = document.getElementById("btn-claim-reward");
-  if (btnClaim) {
-    if (isSeven) {
-      btnClaim.classList.remove("hidden");
-    } else {
-      btnClaim.classList.add("hidden");
-    }
-  }
-
-  // G. Renderizar Historial
-  renderHistoryList();
-}
-
-function renderHistoryList() {
-  const historyList = document.getElementById("history-list");
-  const countBadge = document.getElementById("history-count-badge");
-  if (!historyList) return;
-
-  if (!currentUser.history || currentUser.history.length === 0) {
-    historyList.innerHTML = `
-      <div style="text-align: center; color: var(--gris-text-muted); font-size: 0.75rem; padding: 18px 8px;">
-        Cuenta con 2 fichos de cortesía iniciales. Suma comprando Crispetas o escanea un QR.
-      </div>
-    `;
-    if (countBadge) countBadge.textContent = "2 fichos iniciales";
-    return;
-  }
-
-  if (countBadge) {
-    countBadge.textContent = `${currentUser.history.length} compras`;
-  }
-
-  const itemsHtml = currentUser.history
-    .slice()
-    .reverse()
-    .slice(0, 6)
-    .map(item => `
-      <div class="mobile-history-row">
-        <div class="history-name-date">
-          <span class="history-product-name">${escapeHtml(item.product)}</span>
-          <span class="history-date">${escapeHtml(item.date)}</span>
-        </div>
-        <span class="history-ficho-badge">${item.fichoNumber}</span>
-      </div>
-    `)
-    .join("");
-
-  historyList.innerHTML = itemsHtml;
-}
-
-// ==========================================================================
-// 6. AUTENTICACIÓN: LOGIN & REGISTRO (CON 2 FICHOS INICIALES GRATIS)
-// ==========================================================================
 function toggleAuthMode(mode) {
   const formLogin = document.getElementById("auth-login-form");
   const formRegister = document.getElementById("auth-register-form");
@@ -369,99 +293,205 @@ function toggleAuthMode(mode) {
   }
 }
 
-async function handleLoginSubmit(event) {
-  event.preventDefault();
-  const email = document.getElementById("login-email").value.trim();
+// ==========================================================================
+// 6. ACTUALIZACIÓN VISUAL DEL ESTADO (BILLETERA & 7 FICHOS)
+// ==========================================================================
+function updateAllPageComponents() {
+  if (!currentUser) return;
 
-  // Buscar en Supabase DB
-  let foundUser = null;
-  if (window.CrunchDB) {
-    try {
-      const users = await window.CrunchDB.getUsers();
-      foundUser = users.find(u => u.email.toLowerCase() === email.toLowerCase());
-    } catch (e) {}
+  const fichos = Math.min(currentUser.fichos, 7);
+  const remaining = Math.max(0, 7 - fichos);
+  const isSeven = fichos >= 7;
+  const progressPercent = Math.round((fichos / 7) * 100);
+
+  // Top Bar
+  const navFichosBadge = document.getElementById("nav-fichos-badge");
+  if (navFichosBadge) navFichosBadge.textContent = `${fichos}/7`;
+
+  const navUserPillName = document.getElementById("nav-user-pill-name");
+  if (navUserPillName) navUserPillName.textContent = currentUser.name.split(" ")[0];
+
+  const topAvatar = document.getElementById("top-user-avatar");
+  const clubAvatarInitials = document.getElementById("club-avatar-initials");
+  const initials = currentUser.name
+    .split(" ")
+    .map(n => n[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase() || "CR";
+
+  if (topAvatar) topAvatar.textContent = initials;
+  if (clubAvatarInitials) clubAvatarInitials.textContent = initials;
+
+  // Perfil Card
+  const clubUserName = document.getElementById("club-user-name");
+  const clubUserEmail = document.getElementById("club-user-email");
+  const clubTierBadge = document.getElementById("club-tier-badge");
+
+  if (clubUserName) clubUserName.textContent = currentUser.name;
+  if (clubUserEmail) clubUserEmail.textContent = currentUser.email;
+  if (clubTierBadge) {
+    clubTierBadge.textContent = isSeven
+      ? "¡Crispetas Gratis Listas para Canjear!"
+      : (currentUser.isSuperadmin ? "Superadmin Crunch" : "Miembro Crunch Club");
   }
 
-  currentUser.isLoggedIn = true;
-  currentUser.email = email;
-  if (foundUser) {
-    currentUser.id = foundUser.id;
-    currentUser.name = foundUser.full_name;
-    currentUser.fichos = foundUser.fichos_balance;
-    currentUser.isSuperadmin = (foundUser.roles || []).some(r => r.name === "Superadmin");
-  } else {
-    currentUser.id = Date.now();
-    currentUser.name = email.split("@")[0].replace(".", " ");
-    currentUser.fichos = 2; // Inicia con 2 fichos
-    currentUser.isSuperadmin = email.includes("santiago");
+  // Métricas
+  const metricFichos = document.getElementById("metric-fichos-count");
+  const metricRemaining = document.getElementById("metric-remaining-count");
+  const metricPercent = document.getElementById("metric-progress-percent");
+
+  if (metricFichos) metricFichos.textContent = `${fichos} / 7`;
+  if (metricRemaining) {
+    metricRemaining.textContent = isSeven ? "¡Canje listo!" : `${remaining} Crispetas`;
   }
+  if (metricPercent) metricPercent.textContent = `${progressPercent}%`;
 
-  sessionStorage.setItem("crunch_session_active", "true");
-  saveUserData();
+  // Billetera & Barra de Progreso
+  const progressFill = document.getElementById("wallet-progress-fill");
+  const percentText = document.getElementById("wallet-percent-text");
+  const summaryText = document.getElementById("wallet-summary-text");
 
-  showToast("Bienvenido", `Hola ${currentUser.name.split(" ")[0]}. Saldo: ${currentUser.fichos} fichos.`);
-  showView("info");
+  if (progressFill) progressFill.style.width = `${progressPercent}%`;
+  if (percentText) percentText.textContent = `${progressPercent}%`;
 
-  // Reclamar QR pendiente si venía en el enlace
-  checkPendingQRClaim();
-}
-
-async function handleRegisterSubmit(event) {
-  event.preventDefault();
-  const full_name = document.getElementById("reg-name").value.trim();
-  const email = document.getElementById("reg-email").value.trim();
-
-  try {
-    let createdUser = null;
-    if (window.CrunchDB) {
-      // Registrar usuario en Supabase DB con 2 fichos iniciales gratis
-      createdUser = await window.CrunchDB.createUser({
-        full_name,
-        email,
-        initial_fichos: 2,
-        role: "Cliente"
-      });
+  if (summaryText) {
+    if (isSeven) {
+      summaryText.innerHTML = `<strong>¡Meta Cumplida!</strong> Tus 7 fichos están completos. Reclama tu paquete de <strong>Crispetas 100% Gratis</strong>.`;
+    } else {
+      summaryText.innerHTML = `Tienes <strong>${fichos} de 7</strong> fichos para Crispetas (faltan <strong>${remaining}</strong> para tu premio).`;
     }
-
-    currentUser.isLoggedIn = true;
-    currentUser.id = createdUser ? createdUser.id : Date.now();
-    currentUser.name = full_name;
-    currentUser.email = email;
-    currentUser.fichos = 2; // 2 FICHOS INICIALES GRATIS OBLIGATORIOS
-    currentUser.isSuperadmin = false;
-
-    sessionStorage.setItem("crunch_session_active", "true");
-    saveUserData();
-
-    triggerConfetti();
-    showToast("¡Cuenta Creada!", `¡Bienvenido ${full_name.split(" ")[0]}! Tienes 2 fichos gratis de bienvenida.`);
-    showView("info");
-
-    checkPendingQRClaim();
-  } catch (err) {
-    showToast("Aviso Registro", err.message || "Error al registrar cuenta.");
   }
-}
 
-function handleQuickDemoLogin() {
-  document.getElementById("login-email").value = "santiago@crunch.com";
-  document.getElementById("login-password").value = "crunch2026";
-  const fakeEvt = { preventDefault: () => {} };
-  handleLoginSubmit(fakeEvt);
-}
+  // Slots 1 al 7
+  const trackSlots = document.querySelectorAll(".mobile-ficho-item");
+  trackSlots.forEach(slot => {
+    const index = parseInt(slot.getAttribute("data-index"), 10);
+    if (index <= fichos) {
+      slot.classList.add("completed");
+    } else {
+      slot.classList.remove("completed");
+    }
+  });
 
-function handleLogout() {
-  currentUser.isLoggedIn = false;
-  try {
-    sessionStorage.removeItem("crunch_session_active");
-  } catch (e) {}
-  saveUserData();
-  showToast("Sesión Cerrada", "Has vuelto a la pantalla de ingreso.");
-  showView("login");
+  // Botón de Canje de 7 Fichos
+  const btnClaim = document.getElementById("btn-claim-reward");
+  if (btnClaim) {
+    if (isSeven) {
+      btnClaim.classList.remove("hidden");
+    } else {
+      btnClaim.classList.add("hidden");
+    }
+  }
 }
 
 // ==========================================================================
-// 7. SISTEMA DE RECLAMO DE CÓDIGOS QR & COMPRAS
+// 7. CARGA DINÁMICA DE HISTORIAL DESDE LA BASE DE DATOS
+// ==========================================================================
+async function loadUserHistoryFromDB() {
+  if (!currentUser) return;
+  const historyList = document.getElementById("history-list");
+  const countBadge = document.getElementById("history-count-badge");
+  if (!historyList) return;
+
+  try {
+    const allSales = await window.CrunchDB.getAllSales();
+    const userSales = allSales.filter(s => s.user_id === currentUser.id);
+
+    if (countBadge) {
+      countBadge.textContent = `${userSales.length} compras`;
+    }
+
+    if (userSales.length === 0) {
+      historyList.innerHTML = `
+        <div style="text-align: center; color: var(--gris-text-muted); font-size: 0.8rem; padding: 20px 8px;">
+          No tienes compras registradas en la base de datos aún.<br>
+          <span style="font-size: 0.75rem; color: #64748B;">Tu cuenta cuenta con 2 fichos gratis de bienvenida.</span>
+        </div>
+      `;
+      return;
+    }
+
+    historyList.innerHTML = userSales.slice(0, 10).map(s => {
+      const dateFormatted = new Date(s.created_at).toLocaleDateString("es-CO", {
+        day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit"
+      });
+      return `
+        <div class="mobile-history-row">
+          <div class="history-name-date">
+            <span class="history-product-name">${escapeHtml(s.product_name)}</span>
+            <span class="history-date">${dateFormatted} &middot; $${s.total_price.toLocaleString("es-CO")} COP</span>
+          </div>
+          <span class="history-ficho-badge">${s.fichos_granted > 0 ? `+${s.fichos_granted} Ficho${s.fichos_granted > 1 ? 's' : ''}` : 'Compra'}</span>
+        </div>
+      `;
+    }).join("");
+
+  } catch (err) {
+    historyList.innerHTML = `<div style="text-align: center; color: #EF4444; font-size: 0.8rem; padding: 12px;">Error al cargar compras: ${err.message}</div>`;
+  }
+}
+
+// ==========================================================================
+// 8. CATÁLOGO DINÁMICO DESDE SUPABASE DB
+// ==========================================================================
+async function loadCatalogFromDB() {
+  const container = document.getElementById("catalog-products-grid");
+  if (!container || !window.CrunchDB) return;
+
+  try {
+    const products = await window.CrunchDB.getProducts();
+
+    if (!products || products.length === 0) {
+      container.innerHTML = `
+        <div style="grid-column: 1 / -1; text-align: center; padding: 30px; color: var(--gris-text-muted);">
+          No hay productos registrados en la base de datos de Supabase.<br>
+          <span style="font-size: 0.8rem;">Crea productos desde el Panel de Superadmin o ejecuta schema.sql.</span>
+        </div>
+      `;
+      return;
+    }
+
+    container.innerHTML = products.map(p => {
+      const isCrispetas = p.name.trim().toLowerCase() === "crispetas";
+      const priceFormatted = parseFloat(p.price).toLocaleString("es-CO");
+      return `
+        <div class="mobile-snack-card" style="display: flex; flex-direction: column; justify-content: space-between;">
+          <div class="snack-thumb-box" style="background: ${isCrispetas ? 'linear-gradient(135deg, #011C51, #0A2F7C)' : '#F8FAFC'}; height: 140px; display: flex; align-items: center; justify-content: center; position: relative;">
+            <div style="text-align: center; color: ${isCrispetas ? '#FECC35' : '#011C51'};">
+              <span style="font-size: 2.2rem; display: block; line-height: 1;">🍿</span>
+              <span style="font-size: 0.75rem; font-weight: 800; text-transform: uppercase;">Crunch Gourmet</span>
+            </div>
+            ${isCrispetas ? '<span class="snack-thumb-badge" style="background: #FEA704; color: #011C51; font-weight: 900;">★ 7 Fichos Oficial</span>' : (p.is_ficho_eligible ? '<span class="snack-thumb-badge">+1 Ficho</span>' : '')}
+          </div>
+          <div class="snack-thumb-info" style="padding: 14px; flex: 1; display: flex; flex-direction: column; justify-content: space-between;">
+            <div>
+              <h4 class="snack-thumb-title" style="font-size: 0.95rem; font-weight: 800; color: #011C51; margin-bottom: 4px;">${escapeHtml(p.name)}</h4>
+              <p style="font-size: 0.75rem; color: #64748B; margin-bottom: 8px;">${escapeHtml(p.description || 'Snack Crunch delicioso y artesanal.')}</p>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
+              <span class="snack-thumb-price" style="font-size: 1rem; font-weight: 900; color: #011C51;">$${priceFormatted} COP</span>
+              ${isCrispetas ? '<span style="font-size: 0.7rem; font-weight: 800; color: #B45309; background: #FFFBEB; padding: 2px 6px; border-radius: 4px;">Premio Gratis</span>' : ''}
+            </div>
+          </div>
+        </div>
+      `;
+    }).join("");
+
+  } catch (err) {
+    container.innerHTML = `
+      <div style="grid-column: 1 / -1; text-align: center; padding: 24px; color: #EF4444; font-size: 0.85rem;">
+        No se pudo cargar el catálogo de Supabase: ${err.message}<br>
+        <button onclick="openSupabaseModal()" class="btn-mobile-secondary" style="margin-top: 10px; width: auto; display: inline-flex; padding: 8px 16px;">
+          Configurar Conexión DB
+        </button>
+      </div>
+    `;
+  }
+}
+
+// ==========================================================================
+// 9. RECLAMO DE CÓDIGOS QR & INPUT DE COMPRA (DIRECTO EN SUPABASE DB)
 // ==========================================================================
 async function handleRegisterPurchase(event) {
   event.preventDefault();
@@ -469,79 +499,37 @@ async function handleRegisterPurchase(event) {
   const code = input ? input.value.trim() : "";
   if (!code) return;
 
-  await claimQRCode(code);
+  await processQRClaim(code);
   if (input) input.value = "";
 }
 
-async function claimQRCode(code) {
+async function processQRClaim(code) {
   if (!code) return;
 
-  if (!currentUser.isLoggedIn) {
+  if (!currentUser) {
     sessionStorage.setItem("pending_ficho_code", code);
     showToast("Inicia Sesión", "Ingresa a tu cuenta para reclamar tu ficho.");
     showView("login");
     return;
   }
 
+  showToast("Validando con DB...", `Comprobando código QR ${code} en Supabase.`);
+
   try {
-    if (window.CrunchDB) {
-      const res = await window.CrunchDB.claimQRCode(code, currentUser.id);
-      currentUser.fichos = res.new_balance;
-      saveUserData();
-      triggerConfetti();
-      showToast("¡Ficho Reclamado!", res.message || "+1 Ficho sumado con éxito.");
-      await syncUserDataWithSupabase();
-    } else {
-      currentUser.fichos = Math.min(currentUser.fichos + 1, 7);
-      saveUserData();
-      showToast("+1 Ficho Sumado", `Código ${code} procesado.`);
-    }
-  } catch (err) {
-    showToast("Aviso Código QR", err.message || "Código inválido o ya reclamado.");
-  }
-}
-
-function checkPendingQRClaim() {
-  const pending = sessionStorage.getItem("pending_ficho_code");
-  if (pending && currentUser.isLoggedIn) {
-    sessionStorage.removeItem("pending_ficho_code");
-    setTimeout(() => {
-      claimQRCode(pending);
-    }, 500);
-  }
-}
-
-function quickAddFicho(productName) {
-  if (productName.toLowerCase() !== "crispetas") {
-    showToast("Regla de Fichos", `Los fichos de fidelización aplican para 'Crispetas' ($2.000 COP).`);
-  }
-  currentUser.fichos = Math.min(currentUser.fichos + 1, 7);
-  saveUserData();
-  if (currentUser.fichos >= 7) {
+    const res = await window.CrunchDB.claimQRCode(code, currentUser.id);
+    currentUser.fichos = res.new_balance;
+    localStorage.setItem("crunch_active_user", JSON.stringify(currentUser));
+    updateAllPageComponents();
     triggerConfetti();
-    showToast("¡7 Fichos Completados!", "Tu paquete de Crispetas gratis está listo para canjear.");
-    setTimeout(openClaimModal, 300);
-  } else {
-    showToast("+1 Ficho Sumado", `Saldo actual: ${currentUser.fichos}/7 fichos.`);
+    showToast("¡Ficho Reclamado!", res.message);
+    await loadUserHistoryFromDB();
+  } catch (err) {
+    showToast("Aviso Código QR", err.message);
   }
-}
-
-function reachSevenFichosDemo() {
-  currentUser.fichos = 7;
-  saveUserData();
-  triggerConfetti();
-  showToast("¡7 Fichos!", "Listo para canjear tus Crispetas gratis.");
-  setTimeout(openClaimModal, 400);
-}
-
-function resetFichosDemo() {
-  currentUser.fichos = 2; // Reiniciar a los 2 fichos iniciales gratis
-  saveUserData();
-  showToast("Billetera Reiniciada", "Saldo restablecido a 2 fichos iniciales gratis.");
 }
 
 // ==========================================================================
-// 8. CANJE DE CRISPETAS (7MO FICHO)
+// 10. CANJE DE 7 FICHOS POR CRISPETAS GRATIS (DIRECTO EN DB)
 // ==========================================================================
 function openClaimModal() {
   const modal = document.getElementById("modal-claim");
@@ -557,26 +545,25 @@ function closeClaimModal() {
 }
 
 async function confirmRewardRedemption() {
-  try {
-    if (window.CrunchDB) {
-      const res = await window.CrunchDB.redeemSevenFichos(currentUser.id);
-      currentUser.fichos = res.remaining_fichos;
-    } else {
-      currentUser.fichos = Math.max(0, currentUser.fichos - 7);
-    }
+  if (!currentUser) return;
+  showToast("Procesando Canje...", "Actualizando saldo en Supabase DB.");
 
-    currentUser.totalRewardsClaimed = (currentUser.totalRewardsClaimed || 0) + 1;
-    saveUserData();
+  try {
+    const res = await window.CrunchDB.redeemSevenFichos(currentUser.id);
+    currentUser.fichos = res.remaining_fichos;
+    localStorage.setItem("crunch_active_user", JSON.stringify(currentUser));
     closeClaimModal();
+    updateAllPageComponents();
     triggerConfetti();
-    showToast("¡Crispetas Canjeadas!", "Cupón generado: CRUNCH-CRISPETAS-7F. Reclámalo en tienda.");
+    showToast("¡Crispetas Canjeadas!", "Premio validado en la base de datos. Reclámalo en tienda con tu correo.");
+    await loadUserHistoryFromDB();
   } catch (err) {
-    showToast("Aviso Canje", err.message || "Error al canjear fichos.");
+    showToast("Aviso Canje", err.message);
   }
 }
 
 // ==========================================================================
-// 9. TOAST & CONFETTI
+// 11. TOAST NOTIFICATION & CONFETTI
 // ==========================================================================
 let toastTimer = null;
 function showToast(title, message) {
@@ -670,36 +657,23 @@ function escapeHtml(str) {
     .replace(/'/g, "&#039;");
 }
 
+function handleBottomNav(target) {
+  if (target === "wallet") {
+    const el = document.getElementById("seccion-billetera");
+    if (el) el.scrollIntoView({ behavior: "smooth" });
+  } else if (target === "add") {
+    const el = document.getElementById("seccion-acciones");
+    if (el) el.scrollIntoView({ behavior: "smooth" });
+  } else if (target === "catalog") {
+    const el = document.getElementById("seccion-catalogo");
+    if (el) el.scrollIntoView({ behavior: "smooth" });
+  } else if (target === "help") {
+    const el = document.getElementById("seccion-soporte");
+    if (el) el.scrollIntoView({ behavior: "smooth" });
+  }
+}
+
 window.addEventListener("click", e => {
   const modalClaim = document.getElementById("modal-claim");
   if (e.target === modalClaim) closeClaimModal();
-});
-
-// ==========================================================================
-// 10. INICIALIZACIÓN & DETECCIÓN DE CÓDIGO QR EN URL
-// ==========================================================================
-document.addEventListener("DOMContentLoaded", () => {
-  // 1. Detectar si viene un código QR en la URL (?claim=CRUNCH-... o ?code=...)
-  // "que te redirige a la página y reclama tu ficho"
-  const urlParams = new URLSearchParams(window.location.search);
-  const claimCode = urlParams.get("claim") || urlParams.get("code");
-
-  if (claimCode) {
-    if (currentUser.isLoggedIn) {
-      claimQRCode(claimCode);
-    } else {
-      sessionStorage.setItem("pending_ficho_code", claimCode);
-      showToast("¡Código QR Detectado!", "Inicia sesión o regístrate para sumar tu ficho.");
-    }
-    try {
-      window.history.replaceState({}, document.title, window.location.pathname);
-    } catch (e) {}
-  }
-
-  // 2. Control inicial de vistas
-  if (currentUser.isLoggedIn) {
-    showView("info");
-  } else {
-    showView("login");
-  }
 });

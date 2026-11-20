@@ -87,23 +87,13 @@ El archivo [`schema.sql`](schema.sql) contiene la definición completa de tablas
 
 ---
 
-## ⚙️ Guía de Configuración y Puesta en Marcha
+## ⚙️ Conexión Integrada con Supabase
 
-### 1. Ejecutar el Script en Supabase
-1. Ingresa a tu proyecto en [Supabase](https://supabase.com/dashboard/project/tivjxgevzavibkrqdgyn).
-2. Ve a la sección **SQL Editor** en la barra lateral izquierda.
-3. Haz clic en **New query**, copia y pega todo el contenido de [`schema.sql`](schema.sql).
-4. Haz clic en **Run** (Ctrl + Enter) para crear las tablas, sembrar los roles, permisos, usuario Superadmin y el producto inicial **Crispetas a $2.000 COP**.
+La aplicación ya cuenta con la **Supabase Publishable Key integrada por defecto**:
+- **Project URL**: `https://tivjxgevzavibkrqdgyn.supabase.co`
+- **Publishable Key**: `sb_publishable_dU8xyuE3WRcyeRNd8-RAyg_BDF_fFyn`
 
-### 2. Obtener la Llave Pública (Anon Key)
-1. En el panel de Supabase, entra a **Project Settings** (icono de engranaje ⚙️) &rarr; **API**.
-2. En la sección **Project API keys**, copia el valor de **`anon` `public`**.
-
-### 3. Conectar la Aplicación en 1 Clic
-1. Abre el [Panel de Superadmin](admin/index.html) o la [App de Clientes](Crunch%20V1.1/index.html) en tu navegador.
-2. En la barra superior, haz clic en el botón **"DB Supabase"** (o *"Supabase JS"*).
-3. Pega tu **Anon Key** y haz clic en **Guardar & Conectar a DB**.
-4. El indicador cambiará a verde (**"Supabase DB Activa"**) y cargará automáticamente todos los datos reales desde Supabase.
+No es necesario ingresar llaves manualmente. Al abrir cualquier vista ([Panel de Superadmin](admin/index.html) o [App de Clientes](Crunch%20V1.1/index.html)), el sistema se conecta automáticamente y consulta los datos en tiempo real de Supabase.
 
 ---
 

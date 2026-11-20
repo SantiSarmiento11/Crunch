@@ -1,18 +1,20 @@
 /**
- * Crunch Snacks - Supabase Pure JavaScript Engine (Sin Datos Simulados)
- * Comunicación 100% directa con la Base de Datos en Supabase
+ * Crunch Snacks - Supabase Pure JavaScript Engine
+ * Conexión nativa por defecto integrada a Supabase DB
  * Proyecto: https://tivjxgevzavibkrqdgyn.supabase.co
  */
 
 (function (window) {
   const SUPABASE_PROJECT_URL = "https://tivjxgevzavibkrqdgyn.supabase.co";
+  // API Key pública / publishable integrada por defecto:
+  const DEFAULT_PUBLISHABLE_KEY = "sb_publishable_dU8xyuE3WRcyeRNd8-RAyg_BDF_fFyn";
   const STORAGE_KEY_ANON = "crunch_supabase_anon_key";
 
-  function getSavedAnonKey() {
-    return localStorage.getItem(STORAGE_KEY_ANON) || "";
+  function getActiveKey() {
+    return localStorage.getItem(STORAGE_KEY_ANON) || DEFAULT_PUBLISHABLE_KEY;
   }
 
-  function setSavedAnonKey(key) {
+  function setCustomKey(key) {
     if (key) {
       localStorage.setItem(STORAGE_KEY_ANON, key.trim());
     } else {
@@ -23,11 +25,11 @@
   let supabaseClient = null;
 
   function initClient() {
-    const key = getSavedAnonKey();
+    const key = getActiveKey();
     if (window.supabase && key) {
       try {
         supabaseClient = window.supabase.createClient(SUPABASE_PROJECT_URL, key);
-        console.log("Supabase JS conectado directamente a:", SUPABASE_PROJECT_URL);
+        console.log("Supabase JS conectado automáticamente a:", SUPABASE_PROJECT_URL);
       } catch (e) {
         console.error("Error al inicializar Supabase Client:", e);
         supabaseClient = null;
@@ -41,19 +43,18 @@
   function requireClient() {
     if (!supabaseClient) initClient();
     if (!supabaseClient) {
-      throw new Error(
-        "Supabase no está conectado aún. Por favor haz clic en 'Conectar Supabase' en la barra superior e ingresa tu Anon Key de Supabase."
-      );
+      throw new Error("No se pudo establecer conexión con Supabase.");
     }
     return supabaseClient;
   }
 
   const CrunchDB = {
     PROJECT_URL: SUPABASE_PROJECT_URL,
+    DEFAULT_KEY: DEFAULT_PUBLISHABLE_KEY,
 
-    getAnonKey: getSavedAnonKey,
+    getAnonKey: getActiveKey,
     setAnonKey: function(key) {
-      setSavedAnonKey(key);
+      setCustomKey(key);
       initClient();
     },
 
@@ -66,7 +67,7 @@
       if (!supabaseClient) {
         return {
           success: false,
-          message: "Anon Key no configurada. Ingresa tu Supabase Anon Key para conectar con la DB."
+          message: "Cliente Supabase no inicializado."
         };
       }
       try {
@@ -133,7 +134,6 @@
     },
 
     // 4. CREAR CUENTA DE USUARIO (Con 2 fichos iniciales gratis)
-    // "El Superadmin puede crear también las cuentas de los usuarios que compren. Al crear cada cuenta debe tener 2 fichos iniciales gratis"
     async createUser({ full_name, email, phone = "", initial_fichos = 2, role = "Cliente" }) {
       const client = requireClient();
       const emailClean = email.toLowerCase().trim();
@@ -196,7 +196,6 @@
     },
 
     // 5. REGISTRAR VENTA
-    // "Los 7 fichos que hay en este momento unicamente contaran para el producto 'Crispetas'"
     async createSale({ user_id, product_id, quantity = 1, description = "", created_by_user_id = null }) {
       const client = requireClient();
       const qty = parseInt(quantity) || 1;

@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Crunch Snacks - Panel de Administración</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="admin.css">
+</head>
+<body>
+
+  <!-- NAVBAR -->
+  <header class="admin-navbar">
+    <a href="#" class="nav-brand">
+      <img src="../Crunch V1.1/assets/crunch_logo_web.png" alt="Crunch Logo" class="nav-logo">
+      <span class="brand-badge">Superadmin</span>
+    </a>
+
+    <div class="nav-user-area">
+      <!-- Indicador Estado Supabase -->
+      <div id="supabase-status-pill" class="btn-nav-outline" onclick="openSupabaseModal()" style="cursor: pointer;" title="Configurar conexión Supabase">
+        <span id="supabase-dot" style="width: 8px; height: 8px; border-radius: 50%; background: #10B981; display: inline-block;"></span>
+        <span id="supabase-status-text">Supabase JS</span>
+      </div>
+
+      <div class="superadmin-pill">
+        <div class="avatar-circle">SS</div>
+        <span id="nav-admin-name">Santiago Sarmiento</span>
+      </div>
+
+      <a href="../Crunch V1.1/index.html" target="_blank" class="btn-nav-outline" title="Abrir App Móvil del Cliente">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
+          <line x1="12" y1="18" x2="12.01" y2="18"></line>
+        </svg>
+        <span>Ver App Móvil</span>
+      </a>
+
+      <button onclick="handleLogout()" class="btn-nav-outline" title="Cerrar sesión">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+          <polyline points="16 17 21 12 16 7"></polyline>
+          <line x1="21" y1="12" x2="9" y2="12"></line>
+        </svg>
+        <span>Salir</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- CONTAINER -->
+  <div class="admin-container">
+    
+    <!-- SIDEBAR -->
+    <aside class="admin-sidebar">
+      <div class="sidebar-title">Navegación</div>
+      <button class="tab-btn active" onclick="switchTab('resumen')">
+        <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="3" width="7" height="7"></rect>
+          <rect x="14" y="3" width="7" height="7"></rect>
+          <rect x="14" y="14" width="7" height="7"></rect>
+          <rect x="3" y="14" width="7" height="7"></rect>
+        </svg>
+        <span>Resumen General</span>
+      </button>
+
+      <button class="tab-btn" onclick="switchTab('ventas-historial')">
+        <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+          <polyline points="14 2 14 8 20 8"></polyline>
+          <line x1="16" y1="13" x2="8" y2="13"></line>
+          <line x1="16" y1="17" x2="8" y2="17"></line>
+        </svg>
+        <span>Historial de Compras</span>
+      </button>
+
+      <button class="tab-btn" onclick="switchTab('registrar-venta')">
+        <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="9" cy="21" r="1"></circle>
+          <circle cx="20" cy="21" r="1"></circle>
+          <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+        </svg>
+        <span>Ingresar Venta</span>
+      </button>
+
+      <button class="tab-btn" onclick="switchTab('productos')">
+        <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
+          <line x1="3" y1="6" x2="21" y2="6"></line>
+        </svg>
+        <span>Crear Productos</span>
+      </button>
+
+      <button class="tab-btn" onclick="switchTab('usuarios')">
+        <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+          <circle cx="8.5" cy="7" r="4"></circle>
+          <line x1="20" y1="8" x2="20" y2="14"></line>
+          <line x1="23" y1="11" x2="17" y2="11"></line>
+        </svg>
+        <span>Crear Cuentas Clientes</span>
+      </button>
+
+      <button class="tab-btn" onclick="switchTab('qr')">
+        <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="3" width="7" height="7"></rect>
+          <rect x="14" y="3" width="7" height="7"></rect>
+          <rect x="3" y="14" width="7" height="7"></rect>
+          <path d="M14 14h3v3h-3z"></path>
+          <path d="M20 14v6h-6"></path>
+        </svg>
+        <span>Generar Códigos QR</span>
+      </button>
+
+      <div style="margin-top: 24px; padding: 12px; background: #EEF2F6; border-radius: 8px; font-size: 0.75rem; color: #475569;">
+        <strong>Regla de Fidelización:</strong><br>
+        • Cada cuenta nueva = <strong>2 fichos gratis</strong><br>
+        • 7 fichos aplican para <strong>Crispetas ($2.000 COP)</strong><br>
+        • QR generado = suma <strong>+1 ficho</strong>
+      </div>
+    </aside>
+
+    <!-- MAIN VIEWS -->
+    <main class="admin-main">
+
+      <!-- ================= 1. RESUMEN GENERAL ================= -->
+      <section id="view-resumen" class="view-section active">
+        <div class="section-header">
+          <div>
+            <h1 class="section-title">Panel de Control General</h1>
+            <p class="section-subtitle">Métricas en tiempo real del sistema de fidelización y ventas Crunch</p>
+          </div>
+          <button class="btn-accent" onclick="switchTab('registrar-venta')">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+            <span>+ Ingresar Nueva Venta</span>
+          </button>
+        </div>
+
+        <div class="kpi-grid">
+          <div class="kpi-card">
+            <div class="kpi-icon-box">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="12" y1="1" x2="12" y2="23"></line>
+                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+              </svg>
+            </div>
+            <div>
+              <div class="kpi-title">Ventas Totales</div>
+              <div class="kpi-value" id="kpi-total-sales">$0 COP</div>
+            </div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-icon-box orange">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="9" cy="21" r="1"></circle>
+                <circle cx="20" cy="21" r="1"></circle>
+                <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+              </svg>
+            </div>
+            <div>
+              <div class="kpi-title">Compras Registradas</div>
+              <div class="kpi-value" id="kpi-total-orders">0</div>
+            </div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-icon-box gold">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+              </svg>
+            </div>
+            <div>
+              <div class="kpi-title">Fichos Otorgados</div>
+              <div class="kpi-value" id="kpi-total-fichos">0</div>
+            </div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-icon-box">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                <circle cx="9" cy="7" r="4"></circle>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+              </svg>
+            </div>
+            <div>
+              <div class="kpi-title">Cuentas Clientes</div>
+              <div class="kpi-value" id="kpi-total-users">0</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Acceso Rápido & Últimas Ventas -->
+        <div class="admin-card">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+            <h2 style="font-size: 1.1rem; font-weight: 800; color: var(--azul-primary);">Últimas Ventas Registradas</h2>
+            <button class="btn-sm btn-primary" onclick="switchTab('ventas-historial')">Ver Historial Completo &rarr;</button>
+          </div>
+          <div class="table-responsive">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Fecha</th>
+                  <th>Cliente</th>
+                  <th>Producto</th>
+                  <th>Cantidad</th>
+                  <th>Total COP</th>
+                  <th>Fichos</th>
+                </tr>
+              </thead>
+              <tbody id="table-recent-sales">
+                <tr><td colspan="7" style="text-align: center; color: var(--gris-text-muted);">Cargando ventas...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= 2. HISTORIAL COMPLETO DE COMPRAS ================= -->
+      <section id="view-ventas-historial" class="view-section">
+        <div class="section-header">
+          <div>
+            <h1 class="section-title">Historial Global de Compras</h1>
+            <p class="section-subtitle">Registro auditado de todas las ventas de todo el tiempo con fecha, cliente, producto, precio y notas</p>
+          </div>
+          <button class="btn-primary" onclick="loadSalesHistory()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="23 4 23 10 17 10"></polyline>
+              <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+            </svg>
+            <span>Actualizar</span>
+          </button>
+        </div>
+
+        <div class="admin-card">
+          <div class="table-responsive">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Fecha & Hora</th>
+                  <th>Cliente (Comprador)</th>
+                  <th>Producto</th>
+                  <th>Cant.</th>
+                  <th>Precio Unit.</th>
+                  <th>Total</th>
+                  <th>Fichos Sumados</th>
+                  <th>Descripción / Notas</th>
+                </tr>
+              </thead>
+              <tbody id="table-all-sales">
+                <tr><td colspan="9" style="text-align: center; color: var(--gris-text-muted);">Cargando historial de compras...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= 3. INGRESAR VENTA ================= -->
+      <section id="view-registrar-venta" class="view-section">
+        <div class="section-header">
+          <div>
+            <h1 class="section-title">Ingresar Venta</h1>
+            <p class="section-subtitle">Registra una compra para un cliente. Si el producto es "Crispetas", suma automáticamente fichos a su cuenta.</p>
+          </div>
+        </div>
+
+        <div class="admin-card" style="max-width: 640px;">
+          <form id="form-sale" onsubmit="handleCreateSale(event)">
+            
+            <div class="form-group">
+              <label class="form-label" for="sale-user-id">Seleccionar Cliente Comprador *</label>
+              <select id="sale-user-id" class="form-select" required>
+                <option value="">-- Seleccionar cliente registrado --</option>
+              </select>
+              <span class="form-hint">¿El cliente no tiene cuenta? <a href="javascript:void(0)" onclick="switchTab('usuarios')" style="color: var(--azul-primary); font-weight: 700;">Créala aquí en 1 segundo</a>.</span>
+            </div>
+
+            <div class="form-grid-2">
+              <div class="form-group">
+                <label class="form-label" for="sale-product-id">Producto *</label>
+                <select id="sale-product-id" class="form-select" required onchange="handleProductSelectChange()">
+                  <option value="">-- Seleccionar producto --</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="sale-quantity">Cantidad *</label>
+                <input type="number" id="sale-quantity" class="form-input" min="1" value="1" required oninput="calculateSaleTotal()">
+              </div>
+            </div>
+
+            <div class="form-grid-2">
+              <div class="form-group">
+                <label class="form-label">Total Calculado</label>
+                <input type="text" id="sale-total-preview" class="form-input" readonly value="$0 COP" style="background: #F8FAFC; font-weight: 800; color: var(--azul-primary);">
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Fichos a Otorgar</label>
+                <input type="text" id="sale-fichos-preview" class="form-input" readonly value="+0 Fichos" style="background: #FFFBEB; font-weight: 800; color: #B45309;">
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="sale-description">Descripción / Notas de la Venta</label>
+              <textarea id="sale-description" class="form-textarea" placeholder="Ej. Pago en efectivo mostrador principal, turno tarde..."></textarea>
+            </div>
+
+            <button type="submit" class="btn-accent" style="width: 100%; justify-content: center;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+              <span>Registrar Venta & Asignar Fichos</span>
+            </button>
+          </form>
+        </div>
+      </section>
+
+      <!-- ================= 4. CREAR PRODUCTOS ================= -->
+      <section id="view-productos" class="view-section">
+        <div class="section-header">
+          <div>
+            <h1 class="section-title">Gestión de Productos</h1>
+            <p class="section-subtitle">El Superadmin puede crear nuevos productos con precio para el catálogo Crunch</p>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1.4fr; gap: 24px;">
+          <!-- Formulario Crear Producto -->
+          <div class="admin-card">
+            <h2 style="font-size: 1.1rem; font-weight: 800; color: var(--azul-primary); margin-bottom: 16px;">Crear Nuevo Producto</h2>
+            <form id="form-product" onsubmit="handleCreateProduct(event)">
+              <div class="form-group">
+                <label class="form-label" for="prod-name">Nombre del Producto *</label>
+                <input type="text" id="prod-name" class="form-input" placeholder="Ej. Crispetas Especiales, Papas BBQ..." required>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="prod-price">Precio en COP *</label>
+                <input type="number" id="prod-price" class="form-input" placeholder="2000" min="0" step="100" required>
+                <span class="form-hint">Ingresa el valor numérico en pesos colombianos.</span>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="prod-desc">Descripción</label>
+                <textarea id="prod-desc" class="form-textarea" placeholder="Descripción breve del sabor, gramaje y presentación..."></textarea>
+              </div>
+
+              <div class="form-group" style="display: flex; align-items: center; gap: 8px;">
+                <input type="checkbox" id="prod-eligible" checked style="width: 18px; height: 18px;">
+                <label for="prod-eligible" style="font-size: 0.85rem; font-weight: 600;">Otorga fichos en compras</label>
+              </div>
+
+              <button type="submit" class="btn-primary" style="width: 100%; justify-content: center;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <line x1="12" y1="5" x2="12" y2="19"></line>
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+                <span>Guardar Producto</span>
+              </button>
+            </form>
+          </div>
+
+          <!-- Listado de Productos -->
+          <div class="admin-card">
+            <h2 style="font-size: 1.1rem; font-weight: 800; color: var(--azul-primary); margin-bottom: 16px;">Catálogo Actual en Base de Datos</h2>
+            <div class="table-responsive">
+              <table class="admin-table">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Producto</th>
+                    <th>Precio</th>
+                    <th>Fichos</th>
+                  </tr>
+                </thead>
+                <tbody id="table-products">
+                  <tr><td colspan="4" style="text-align: center; color: var(--gris-text-muted);">Cargando productos...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= 5. CREAR CUENTAS CLIENTES ================= -->
+      <section id="view-usuarios" class="view-section">
+        <div class="section-header">
+          <div>
+            <h1 class="section-title">Cuentas de Usuarios Compradores</h1>
+            <p class="section-subtitle">El Superadmin puede crear las cuentas de los clientes. Al crear cada cuenta recibe 2 fichos iniciales gratis automáticamente.</p>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1.4fr; gap: 24px;">
+          <!-- Form Crear Cuenta -->
+          <div class="admin-card">
+            <h2 style="font-size: 1.1rem; font-weight: 800; color: var(--azul-primary); margin-bottom: 16px;">Crear Nueva Cuenta de Cliente</h2>
+            <form id="form-user" onsubmit="handleCreateUser(event)">
+              <div class="form-group">
+                <label class="form-label" for="user-name">Nombre y Apellido *</label>
+                <input type="text" id="user-name" class="form-input" placeholder="Ej. Andrés Pérez" required>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="user-email">Correo Electrónico *</label>
+                <input type="email" id="user-email" class="form-input" placeholder="andres@correo.com" required>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="user-phone">Teléfono / WhatsApp</label>
+                <input type="tel" id="user-phone" class="form-input" placeholder="+57 300 000 0000">
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="user-fichos">Fichos Iniciales Gratis</label>
+                <input type="number" id="user-fichos" class="form-input" value="2" min="0" required readonly style="background: #FFFBEB; font-weight: 800; color: #B45309;">
+                <span class="form-hint">Por regla de negocio, cada cuenta creada arranca con 2 fichos de cortesía.</span>
+              </div>
+
+              <button type="submit" class="btn-accent" style="width: 100%; justify-content: center;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="8.5" cy="7" r="4"></circle>
+                  <line x1="20" y1="8" x2="20" y2="14"></line>
+                  <line x1="23" y1="11" x2="17" y2="11"></line>
+                </svg>
+                <span>Crear Cuenta con 2 Fichos Gratis</span>
+              </button>
+            </form>
+          </div>
+
+          <!-- Listado de Usuarios -->
+          <div class="admin-card">
+            <h2 style="font-size: 1.1rem; font-weight: 800; color: var(--azul-primary); margin-bottom: 16px;">Clientes Registrados</h2>
+            <div class="table-responsive">
+              <table class="admin-table">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Nombre</th>
+                    <th>Correo</th>
+                    <th>Roles</th>
+                    <th>Saldo Fichos</th>
+                  </tr>
+                </thead>
+                <tbody id="table-users">
+                  <tr><td colspan="5" style="text-align: center; color: var(--gris-text-muted);">Cargando usuarios...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= 6. GENERADOR DE CÓDIGOS QR ================= -->
+      <section id="view-qr" class="view-section">
+        <div class="section-header">
+          <div>
+            <h1 class="section-title">Generador de Códigos QR para Fichos</h1>
+            <p class="section-subtitle">Genera códigos QR que redirigen al usuario a la página para reclamar su ficho</p>
+          </div>
+          <button class="btn-accent" onclick="handleGenerateQR()">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+            <span>+ Generar Nuevo Código QR (+1 Ficho)</span>
+          </button>
+        </div>
+
+        <div class="admin-card">
+          <h2 style="font-size: 1.1rem; font-weight: 800; color: var(--azul-primary); margin-bottom: 16px;">Códigos QR Generados</h2>
+          <div class="qr-grid" id="qr-codes-grid">
+            <p style="color: var(--gris-text-muted);">Cargando códigos QR...</p>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- MODAL CONFIGURACIÓN SUPABASE -->
+  <div id="modal-supabase" style="display: none; position: fixed; inset: 0; background: rgba(1, 28, 81, 0.6); z-index: 1000; align-items: center; justify-content: center;">
+    <div style="background: #fff; width: 90%; max-width: 520px; border-radius: 16px; padding: 24px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.2);">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <h3 style="color: var(--azul-primary); font-size: 1.2rem; font-weight: 800;">Conexión a Supabase (JS)</h3>
+        <button onclick="closeSupabaseModal()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #64748B;">&times;</button>
+      </div>
+
+      <p style="font-size: 0.85rem; color: #64748B; margin-bottom: 14px;">
+        Conectando directamente con el proyecto Supabase <code>tivjxgevzavibkrqdgyn</code>. Pega tu <strong>Anon Public Key</strong> del panel de Supabase (Project Settings &rarr; API &rarr; anon public) para sincronizar en tiempo real:
+      </p>
+
+      <div class="form-group">
+        <label class="form-label">URL del Proyecto Supabase</label>
+        <input type="text" class="form-input" value="https://tivjxgevzavibkrqdgyn.supabase.co" readonly style="background: #F8FAFC;">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="supabase-anon-key-input">Supabase Anon Key (Llave Pública)</label>
+        <textarea id="supabase-anon-key-input" class="form-textarea" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." style="min-height: 80px; font-family: monospace; font-size: 0.8rem;"></textarea>
+      </div>
+
+      <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 16px;">
+        <button type="button" class="btn-primary" onclick="saveSupabaseKey()">
+          Guardar & Probar Conexión
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST NOTIFICATION -->
+  <div id="admin-toast" class="admin-toast">
+    <span id="toast-text">Mensaje</span>
+  </div>
+
+  <!-- Supabase JS Client & QRCode JS Libs -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+  <script src="crunch-supabase.js"></script>
+  <script src="admin.js"></script>
+</body>
+</html>

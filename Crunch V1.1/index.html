@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#011C51">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Crunch Club | App Móvil Oficial</title>
+  <meta name="description" content="App móvil de fidelidad Crunch Snacks. En tu 7ª compra, el snack invita Crunch. Acumula fichos en papas artesanales y palomitas gourmet.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- Canvas Confetti para Celebraciones -->
+  <canvas id="confetti-canvas"></canvas>
+
+  <!-- Notificación Toast Flotante Móvil -->
+  <div id="toast" class="toast hidden" role="alert" aria-live="polite">
+    <div class="toast-icon" id="toast-icon">
+      <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <polyline points="20 6 9 17 4 12"></polyline>
+      </svg>
+    </div>
+    <div class="toast-body">
+      <p class="toast-title" id="toast-title">Notificación</p>
+      <p class="toast-message" id="toast-message">Mensaje informativo</p>
+    </div>
+  </div>
+
+  <!-- Shell / Contenedor Especializado para Teléfonos Móviles -->
+  <div class="mobile-app-shell">
+    
+    <!-- TOP BAR MÓVIL (STICKY HEADER) -->
+    <header class="mobile-top-bar">
+      <a href="javascript:void(0)" onclick="handleLogoClick()" class="top-bar-brand" aria-label="Inicio Crunch">
+        <img src="assets/crunch_logo_web.png" alt="Crunch Logo" class="top-bar-logo">
+      </a>
+
+      <div class="top-bar-actions">
+        <!-- Acceso Directo Superadmin -->
+        <a href="/admin/index.html" class="top-admin-pill hidden" id="nav-admin-shortcut" title="Ir al Panel de Superadmin">
+          <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="7" height="7"></rect>
+            <rect x="14" y="3" width="7" height="7"></rect>
+            <rect x="14" y="14" width="7" height="7"></rect>
+            <rect x="3" y="14" width="7" height="7"></rect>
+          </svg>
+          <span>Admin</span>
+        </a>
+
+        <!-- Pill de Usuario Activo en Móvil -->
+        <div id="nav-user-pill-container" class="top-user-pill" onclick="showView('info')" title="Ver mi perfil">
+          <div class="top-user-avatar" id="top-user-avatar">SS</div>
+          <span id="nav-user-pill-name">Santiago</span>
+        </div>
+
+        <!-- Badge de Fichos Móvil -->
+        <a href="#seccion-billetera" class="top-fichos-pill" id="nav-fichos-cta">
+          <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+          </svg>
+          <span id="nav-fichos-badge">4/7</span>
+        </a>
+
+        <!-- Botón Logout / Login Rápido -->
+        <button class="top-icon-btn" id="nav-auth-toggle-btn" onclick="handleNavAuthClick()" aria-label="Cambiar de cuenta o salir" title="Salir o Ingresar">
+          <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+            <polyline points="16 17 21 12 16 7"></polyline>
+            <line x1="21" y1="12" x2="9" y2="12"></line>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- CONTENIDO PRINCIPAL SCROLLABLE -->
+    <main class="mobile-main-content">
+
+      <!-- ==================================================================
+           VISTA 1: INGRESO & LOGIN SENCILLO MÓVIL (PANTALLA ÚNICA)
+           ================================================================== -->
+      <section id="view-login" class="mobile-login-container">
+        
+        <!-- Cabecera de Marca Móvil en Login -->
+        <div class="mobile-login-brand">
+          <div class="login-logo-wrapper">
+            <img src="assets/crunch_logo_web.png" alt="Crunch Snacks" class="login-brand-logo">
+          </div>
+          <div class="login-badge-pill">
+            <svg class="icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+            </svg>
+            <span>Club de Lealtad Crunch</span>
+          </div>
+          <h1 class="login-hero-title" id="login-header-title">Cada crujido cuenta</h1>
+          <p class="login-hero-sub" id="login-header-sub">
+            En tu 7ª compra, el snack invita Crunch. Ingresa a tu billetera de fichos.
+          </p>
+        </div>
+
+        <!-- Tarjeta de Acceso Limpio (Sin pestañas dobles) -->
+        <div class="mobile-card mobile-login-card">
+
+          <!-- FORMULARIO DE INICIO DE SESIÓN -->
+          <form id="auth-login-form" onsubmit="handleLoginSubmit(event)">
+            <div class="mobile-form-group">
+              <label class="mobile-form-label" for="login-email">Correo Electrónico</label>
+              <div class="mobile-input-wrapper">
+                <svg class="icon-sm mobile-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                  <polyline points="22,6 12,13 2,6"></polyline>
+                </svg>
+                <input type="email" id="login-email" class="mobile-input" placeholder="tu@correo.com" required value="santiago@crunch.com" inputmode="email" autocomplete="email">
+              </div>
+            </div>
+
+            <div class="mobile-form-group">
+              <label class="mobile-form-label" for="login-password">
+                <span>Contraseña</span>
+              </label>
+              <div class="mobile-input-wrapper">
+                <svg class="icon-sm mobile-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                </svg>
+                <input type="password" id="login-password" class="mobile-input" placeholder="••••••••" required value="crunch2026" autocomplete="current-password">
+              </div>
+            </div>
+
+            <!-- Botón Principal Táctil -->
+            <button type="submit" class="btn-mobile-primary" style="margin-top: 14px;">
+              <span>Iniciar Sesión</span>
+              <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+                <polyline points="12 5 19 12 12 19"></polyline>
+              </svg>
+            </button>
+
+            <!-- Acceso Rápido 1 Toque (Demo) -->
+            <button type="button" class="btn-mobile-demo" onclick="handleQuickDemoLogin()">
+              <svg class="icon-sm text-naranja" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+              </svg>
+              <span>⚡ Ingreso Rápido Demo (Santiago &middot; 4/7 Fichos)</span>
+            </button>
+
+            <!-- Alternador Sutil a Registro (Sin Pestañas) -->
+            <div class="auth-toggle-row">
+              <span>¿No tienes cuenta?</span>
+              <button type="button" class="auth-toggle-link" onclick="toggleAuthMode('register')">Regístrate aquí</button>
+            </div>
+          </form>
+
+          <!-- FORMULARIO DE REGISTRO (ALTERNABLE SUAVEMENTE) -->
+          <form id="auth-register-form" class="hidden" onsubmit="handleRegisterSubmit(event)">
+            <div class="mobile-form-group">
+              <label class="mobile-form-label" for="reg-name">Nombre y Apellido</label>
+              <div class="mobile-input-wrapper">
+                <svg class="icon-sm mobile-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="12" cy="7" r="4"></circle>
+                </svg>
+                <input type="text" id="reg-name" class="mobile-input" placeholder="Ej. Camila Morales" required autocomplete="name">
+              </div>
+            </div>
+
+            <div class="mobile-form-group">
+              <label class="mobile-form-label" for="reg-email">Correo Electrónico</label>
+              <div class="mobile-input-wrapper">
+                <svg class="icon-sm mobile-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                  <polyline points="22,6 12,13 2,6"></polyline>
+                </svg>
+                <input type="email" id="reg-email" class="mobile-input" placeholder="camila@ejemplo.com" required inputmode="email" autocomplete="email">
+              </div>
+            </div>
+
+            <div class="mobile-form-group">
+              <label class="mobile-form-label" for="reg-password">Contraseña</label>
+              <div class="mobile-input-wrapper">
+                <svg class="icon-sm mobile-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                </svg>
+                <input type="password" id="reg-password" class="mobile-input" placeholder="Mínimo 6 caracteres" minlength="6" required autocomplete="new-password">
+              </div>
+            </div>
+
+            <button type="submit" class="btn-mobile-primary" style="margin-top: 14px;">
+              <span>Crear Cuenta & Recibir 1er Ficho</span>
+            </button>
+
+            <!-- Alternador a Login -->
+            <div class="auth-toggle-row">
+              <span>¿Ya tienes cuenta?</span>
+              <button type="button" class="auth-toggle-link" onclick="toggleAuthMode('login')">Inicia sesión</button>
+            </div>
+          </form>
+
+        </div>
+
+        <!-- Micro-beneficios Mobile-First (Discretos y directos) -->
+        <div class="login-micro-benefits">
+          <div class="micro-benefit-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+            <span>Fichos sin caducidad</span>
+          </div>
+          <div class="micro-benefit-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+            </svg>
+            <span>7º Snack 100% Gratis</span>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- ==================================================================
+           VISTA 2: TU INFORMACIÓN & BILLETERA MÓVIL (DASHBOARD)
+           ================================================================== -->
+      <section id="view-user-info" class="mobile-info-container">
+
+        <!-- 1. Card Perfil de Usuario Móvil -->
+        <div class="mobile-user-card" id="seccion-perfil">
+          <div class="user-card-left">
+            <div class="user-large-avatar">
+              <span id="club-avatar-initials">SS</span>
+              <span class="user-status-dot" title="Cuenta Activa"></span>
+            </div>
+            <div class="user-info-text">
+              <h3 id="club-user-name">Santiago Sarmiento</h3>
+              <p id="club-user-email">santiago@crunch.com</p>
+              <span class="user-tier-pill" id="club-tier-badge">Crunch Enthusiast</span>
+            </div>
+          </div>
+
+          <button onclick="handleLogout()" class="top-icon-btn" title="Cerrar sesión y volver al login">
+            <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+              <polyline points="16 17 21 12 16 7"></polyline>
+              <line x1="21" y1="12" x2="9" y2="12"></line>
+            </svg>
+          </button>
+        </div>
+
+        <!-- 2. Grid 2x2 Métricas Resumidas -->
+        <div class="mobile-kpi-grid">
+          <div class="mobile-kpi-card">
+            <span class="kpi-label">Saldo Actual</span>
+            <div class="kpi-value text-naranja" id="metric-fichos-count">4 / 7</div>
+            <span class="kpi-hint">Fichos activos</span>
+          </div>
+
+          <div class="mobile-kpi-card">
+            <span class="kpi-label">Próximo Premio</span>
+            <div class="kpi-value text-azul" id="metric-remaining-count">3 compras</div>
+            <span class="kpi-hint">Para snack gratis</span>
+          </div>
+
+          <div class="mobile-kpi-card">
+            <span class="kpi-label">Progreso</span>
+            <div class="kpi-value text-azul" id="metric-progress-percent">57%</div>
+            <span class="kpi-hint">Del ciclo actual</span>
+          </div>
+
+          <div class="mobile-kpi-card">
+            <span class="kpi-label">Canjeados</span>
+            <div class="kpi-value text-naranja" id="metric-rewards-claimed">1 Snack</div>
+            <span class="kpi-hint">Premios históricos</span>
+          </div>
+        </div>
+
+        <!-- 3. Billetera de Fichos Móvil Especializada -->
+        <div class="mobile-wallet-card section-anchor" id="seccion-billetera">
+          <div class="wallet-card-header">
+            <div>
+              <h2 class="wallet-title">Billetera de Fichos</h2>
+              <p class="wallet-subtitle" id="wallet-summary-text">
+                Tienes <strong>4 de 7</strong> fichos (faltan <strong>3</strong> para tu premio).
+              </p>
+            </div>
+            <span class="wallet-percent-badge" id="wallet-percent-text">57%</span>
+          </div>
+
+          <!-- Barra de Progreso Dinámica -->
+          <div class="mobile-progress-track">
+            <div class="mobile-progress-bar" id="wallet-progress-fill" style="width: 57%;"></div>
+          </div>
+
+          <!-- Matriz de 7 Fichos Móvil (Fila 1: 1 al 4 | Fila 2: 5, 6 y 7 Premio) -->
+          <div class="mobile-fichos-grid" id="wallet-fichos-track">
+            <!-- Ficho 1 -->
+            <div class="mobile-ficho-item completed" data-index="1">
+              <div class="mobile-ficho-circle">
+                <span class="ficho-num">1</span>
+                <svg class="ficho-check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+              </div>
+              <span class="mobile-ficho-label">1ª Compra</span>
+            </div>
+
+            <!-- Ficho 2 -->
+            <div class="mobile-ficho-item completed" data-index="2">
+              <div class="mobile-ficho-circle">
+                <span class="ficho-num">2</span>
+                <svg class="ficho-check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+              </div>
+              <span class="mobile-ficho-label">2ª Compra</span>
+            </div>
+
+            <!-- Ficho 3 -->
+            <div class="mobile-ficho-item completed" data-index="3">
+              <div class="mobile-ficho-circle">
+                <span class="ficho-num">3</span>
+                <svg class="ficho-check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+              </div>
+              <span class="mobile-ficho-label">3ª Compra</span>
+            </div>
+
+            <!-- Ficho 4 -->
+            <div class="mobile-ficho-item completed" data-index="4">
+              <div class="mobile-ficho-circle">
+                <span class="ficho-num">4</span>
+                <svg class="ficho-check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+              </div>
+              <span class="mobile-ficho-label">4ª Compra</span>
+            </div>
+
+            <!-- Ficho 5 -->
+            <div class="mobile-ficho-item" data-index="5">
+              <div class="mobile-ficho-circle">
+                <span class="ficho-num">5</span>
+                <svg class="ficho-check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+              </div>
+              <span class="mobile-ficho-label">5ª Compra</span>
+            </div>
+
+            <!-- Ficho 6 -->
+            <div class="mobile-ficho-item" data-index="6">
+              <div class="mobile-ficho-circle">
+                <span class="ficho-num">6</span>
+                <svg class="ficho-check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+              </div>
+              <span class="mobile-ficho-label">6ª Compra</span>
+            </div>
+
+            <!-- Ficho 7 (PREMIO RECOMPENSA GRATIS) -->
+            <div class="mobile-ficho-item reward-item" data-index="7">
+              <div class="mobile-ficho-circle">
+                <svg class="ficho-crown-icon" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5zm14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1z"></path>
+                </svg>
+                <svg class="ficho-check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+              </div>
+              <div class="reward-info-box">
+                <span class="reward-info-title">7ª Compra</span>
+                <span class="reward-info-sub">¡100% GRATIS!</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Botón de Canje al llegar a 7 Fichos -->
+          <button id="btn-claim-reward" class="btn-claim-reward-mobile hidden" onclick="openClaimModal()">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M20 12v10H4V12"></path>
+              <path d="M2 7h20v5H2z"></path>
+              <path d="M12 22V7"></path>
+            </svg>
+            <span>¡Canjear Mi Snack Gratis Ahora!</span>
+          </button>
+        </div>
+
+        <!-- 4. Acción Rápida: Registrar Código de Empaque -->
+        <div class="mobile-code-card section-anchor" id="seccion-acciones">
+          <div class="card-section-header">
+            <svg class="icon text-azul" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+            </svg>
+            <h3 class="card-section-title">Registrar Nuevo Ficho</h3>
+          </div>
+
+          <form id="form-register-code" onsubmit="handleRegisterPurchase(event)">
+            <div class="code-input-row">
+              <input type="text" id="purchase-code-input" class="mobile-input" placeholder="Código de empaque (ej. PAPA-2026)" required autocomplete="off">
+              <button type="submit" class="code-submit-btn">
+                <span>+ Ficho</span>
+              </button>
+            </div>
+          </form>
+
+          <!-- Chips de Prueba Rápida en 1 Toque -->
+          <div style="margin-top: 10px;">
+            <span style="font-size: 0.6875rem; font-weight: 700; color: var(--gris-text-muted); display: block; margin-bottom: 6px;">
+              Prueba rápida en 1 clic:
+            </span>
+            <div class="quick-chips-grid">
+              <button type="button" class="chip-btn" onclick="quickAddFicho('Papas Rústicas Sal Marina')">
+                +1 Papa Rústica
+              </button>
+              <button type="button" class="chip-btn" onclick="quickAddFicho('Palomitas Caramelo Crunch')">
+                +1 Palomitas
+              </button>
+              <button type="button" class="chip-btn chip-btn-gold" onclick="reachSevenFichosDemo()">
+                ⚡ Completar a 7
+              </button>
+              <button type="button" class="chip-btn" onclick="resetFichosDemo()">
+                🔄 Reiniciar (0)
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 5. Historial Resumido de Fichos -->
+        <div class="mobile-history-card">
+          <div class="card-section-header" style="justify-content: space-between;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <svg class="icon text-azul" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12 14 14"></polyline>
+              </svg>
+              <h3 class="card-section-title">Historial Reciente</h3>
+            </div>
+            <span class="user-tier-pill" id="history-count-badge">4 compras</span>
+          </div>
+
+          <div class="history-items-list" id="history-list">
+            <!-- Se llena dinámicamente desde app.js -->
+          </div>
+        </div>
+
+        <!-- 6. ¿Cómo Funciona? (3 Pasos Minimalistas) -->
+        <div class="section-anchor" id="seccion-mecanica">
+          <div class="card-section-header">
+            <svg class="icon text-azul" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="16" x2="12" y2="12"></line>
+              <line x1="12" y1="8" x2="12.01" y2="8"></line>
+            </svg>
+            <h3 class="card-section-title">¿Cómo Funciona?</h3>
+          </div>
+
+          <div class="mobile-steps-list">
+            <div class="mobile-step-card">
+              <div class="step-badge-number">01</div>
+              <div>
+                <h4 class="step-text-title">Disfruta tus Snacks</h4>
+                <p class="step-text-desc">Compra papas artesanales o palomitas gourmet Crunch en cualquier tienda.</p>
+              </div>
+            </div>
+
+            <div class="mobile-step-card">
+              <div class="step-badge-number">02</div>
+              <div>
+                <h4 class="step-text-title">Ingresa el Código</h4>
+                <p class="step-text-desc">Registra el código al interior de tu empaque. Tus fichos nunca vencen.</p>
+              </div>
+            </div>
+
+            <div class="mobile-step-card highlight">
+              <div class="step-badge-number">03</div>
+              <div>
+                <h4 class="step-text-title">7ª Compra 100% Gratis</h4>
+                <p class="step-text-desc">Al llegar a 7 fichos, reclama tu cupón digital y canjea tu snack sin costo.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 7. Catálogo Resumido (Grid de 2 Columnas Móvil) -->
+        <div class="section-anchor" id="seccion-catalogo">
+          <div class="card-section-header">
+            <svg class="icon text-azul" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
+              <line x1="3" y1="6" x2="21" y2="6"></line>
+            </svg>
+            <h3 class="card-section-title">Snacks Participantes</h3>
+          </div>
+
+          <div class="mobile-catalog-grid">
+            <!-- Producto 1 -->
+            <div class="mobile-snack-card">
+              <div class="snack-thumb-box">
+                <img src="assets/crunch_chips_detail.jpg" alt="Papas Rústicas" class="snack-thumb-img">
+                <span class="snack-thumb-badge">+1 Ficho</span>
+              </div>
+              <div class="snack-thumb-info">
+                <h4 class="snack-thumb-title">Papas Rústicas Sal Marina</h4>
+                <span class="snack-thumb-price">$4.500 COP</span>
+                <button type="button" class="btn-add-snack" onclick="quickAddFicho('Papas Rústicas Sal Marina')">
+                  + Sumar Ficho
+                </button>
+              </div>
+            </div>
+
+            <!-- Producto 2 -->
+            <div class="mobile-snack-card">
+              <div class="snack-thumb-box">
+                <img src="assets/crunch_popcorn_detail.jpg" alt="Palomitas Caramelo" class="snack-thumb-img">
+                <span class="snack-thumb-badge">+1 Ficho</span>
+              </div>
+              <div class="snack-thumb-info">
+                <h4 class="snack-thumb-title">Palomitas Caramelo Crunch</h4>
+                <span class="snack-thumb-price">$4.200 COP</span>
+                <button type="button" class="btn-add-snack" onclick="quickAddFicho('Palomitas Caramelo Crunch')">
+                  + Sumar Ficho
+                </button>
+              </div>
+            </div>
+
+            <!-- Producto 3 -->
+            <div class="mobile-snack-card">
+              <div class="snack-thumb-box">
+                <img src="assets/crunch_hero.jpg" alt="Papas Finas Hierbas" class="snack-thumb-img">
+                <span class="snack-thumb-badge">+1 Ficho</span>
+              </div>
+              <div class="snack-thumb-info">
+                <h4 class="snack-thumb-title">Papas Finas Hierbas</h4>
+                <span class="snack-thumb-price">$4.500 COP</span>
+                <button type="button" class="btn-add-snack" onclick="quickAddFicho('Papas Finas Hierbas')">
+                  + Sumar Ficho
+                </button>
+              </div>
+            </div>
+
+            <!-- Producto 4 -->
+            <div class="mobile-snack-card">
+              <div class="snack-thumb-box">
+                <img src="assets/logo_preview_light.jpg" alt="Palomitas Mantequilla" class="snack-thumb-img">
+                <span class="snack-thumb-badge">+1 Ficho</span>
+              </div>
+              <div class="snack-thumb-info">
+                <h4 class="snack-thumb-title">Palomitas Sal & Mantequilla</h4>
+                <span class="snack-thumb-price">$4.000 COP</span>
+                <button type="button" class="btn-add-snack" onclick="quickAddFicho('Palomitas Sal Marina & Mantequilla')">
+                  + Sumar Ficho
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 8. Soporte Rápido en Móvil -->
+        <div class="section-anchor" id="seccion-soporte" style="margin-bottom: 24px;">
+          <div class="card-section-header">
+            <svg class="icon text-azul" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+            </svg>
+            <h3 class="card-section-title">Ayuda & Soporte</h3>
+          </div>
+
+          <div class="mobile-support-grid">
+            <a href="https://wa.me/573001234567" target="_blank" class="support-action-card">
+              <div class="support-icon-circle">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
+                </svg>
+              </div>
+              <span class="support-title">WhatsApp</span>
+              <span class="support-desc">Atención Lun-Sáb</span>
+            </a>
+
+            <div class="support-action-card" onclick="showToast('Soporte Crunch', 'Correo copiado: soporte@crunchsnacks.co')">
+              <div class="support-icon-circle">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                  <polyline points="22,6 12,13 2,6"></polyline>
+                </svg>
+              </div>
+              <span class="support-title">Email Soporte</span>
+              <span class="support-desc">Respuesta &lt; 24h</span>
+            </div>
+          </div>
+        </div>
+
+      </section>
+
+    </main>
+
+    <!-- ==================================================================
+         BOTTOM APP BAR MÓVIL (NAVEGACIÓN INFERIOR TÁCTIL)
+         Se muestra únicamente cuando el usuario tiene sesión activa.
+         ================================================================== -->
+    <nav class="mobile-bottom-bar hidden" id="mobile-bottom-nav">
+      <!-- Tab 1: Billetera de Fichos -->
+      <button type="button" class="bottom-tab-item active" id="tab-nav-wallet" onclick="handleBottomNav('wallet')">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+        </svg>
+        <span>Billetera</span>
+      </button>
+
+      <!-- Tab 2: Botón Destacado + Ficho (Acción Rápida Central) -->
+      <button type="button" class="bottom-tab-item bottom-tab-cta" id="tab-nav-add" onclick="handleBottomNav('add')" title="Registrar código">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <line x1="12" y1="5" x2="12" y2="19"></line>
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+        <span>+ Ficho</span>
+      </button>
+
+      <!-- Tab 3: Catálogo de Snacks -->
+      <button type="button" class="bottom-tab-item" id="tab-nav-catalog" onclick="handleBottomNav('catalog')">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
+          <line x1="3" y1="6" x2="21" y2="6"></line>
+        </svg>
+        <span>Snacks</span>
+      </button>
+
+      <!-- Tab 4: Soporte / Ayuda -->
+      <button type="button" class="bottom-tab-item" id="tab-nav-help" onclick="handleBottomNav('help')">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"></circle>
+          <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+          <line x1="12" y1="17" x2="12.01" y2="17"></line>
+        </svg>
+        <span>Ayuda</span>
+      </button>
+    </nav>
+
+  </div>
+
+  <!-- BOTTOM SHEET MODAL: CANJE DE PRODUCTO GRATIS (7MO FICHO) -->
+  <div class="modal-backdrop hidden" id="modal-claim" role="dialog" aria-modal="true">
+    <div class="mobile-bottom-sheet">
+      <div class="sheet-drag-handle" onclick="closeClaimModal()"></div>
+
+      <div style="text-align: center; margin-bottom: 12px;">
+        <svg class="icon-lg text-naranja" viewBox="0 0 24 24" fill="currentColor" style="width: 36px; height: 36px;">
+          <path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5zm14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1z"></path>
+        </svg>
+        <h3 class="sheet-title">¡7 Fichos Completados!</h3>
+        <p class="sheet-desc">El séptimo producto lo invita Crunch. Elige tu snack gratis:</p>
+      </div>
+
+      <div class="mobile-reward-options">
+        <label class="mobile-reward-card">
+          <input type="radio" name="free-snack" value="Crispetas" checked>
+          <div class="reward-card-body">
+            <div style="font-size: 0.875rem; color: var(--azul-primary); font-weight: 700;">Crispetas ($2.000 COP)</div>
+            <div style="font-size: 0.71875rem; color: var(--gris-text-secondary);">Producto exclusivo de la dinámica 7 Fichos &middot; 100% Gratis</div>
+          </div>
+        </label>
+      </div>
+
+      <button class="btn-mobile-primary" onclick="confirmRewardRedemption()">
+        <span>Generar Mi Cupón Digital</span>
+      </button>
+
+      <button class="btn-mobile-secondary" onclick="closeClaimModal()" style="margin-top: 8px;">
+        <span>Cancelar</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Supabase JS Client & Crunch Supabase Engine -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="crunch-supabase.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
